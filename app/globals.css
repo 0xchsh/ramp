@@ -44,6 +44,10 @@ canvas {
 
 .animate-panel-in {
   animation: panel-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  scrollbar-width: none;
+}
+.animate-panel-in::-webkit-scrollbar {
+  display: none;
 }
 
 .animate-fade-up {

@@ -12,9 +12,6 @@ export function PresetPicker() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <span style={{ fontSize: 9, color: 'rgba(0,0,0,0.38)', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'Inter, sans-serif' }}>
-        Material
-      </span>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
         {(Object.keys(PRESETS) as PresetKey[]).map((key) => {
           const p = PRESETS[key]

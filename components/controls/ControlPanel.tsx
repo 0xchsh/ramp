@@ -11,19 +11,16 @@ function SectionHeader({ title, open, onToggle }: { title: string; open: boolean
       style={{
         width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '9px 14px', background: 'none', border: 'none',
-        borderBottom: '1px solid rgba(0,0,0,0.07)', cursor: 'pointer',
+        cursor: 'pointer',
         transition: 'transform 0.12s cubic-bezier(0.22, 1, 0.36, 1)',
       }}
       onPointerDown={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(0.98)' }}
       onPointerUp={(e) => { (e.currentTarget as HTMLElement).style.transform = '' }}
       onPointerLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = '' }}
     >
-      <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(0,0,0,0.38)', fontFamily: 'Inter, sans-serif' }}>
+      <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(0,0,0,0.75)', fontFamily: 'Inter, sans-serif' }}>
         {title}
       </span>
-      <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.25s cubic-bezier(0.22, 1, 0.36, 1)' }}>
-        <path d="M1 1L5 5L9 1" stroke="rgba(0,0,0,0.28)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
     </button>
   )
 }
@@ -32,7 +29,7 @@ function ToggleRow({ label, value, onChange }: { label: string; value: boolean; 
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 14px', height: 40 }}>
       <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.75)', fontFamily: 'Inter, sans-serif' }}>{label}</span>
-      <div style={{ display: 'flex', background: 'rgba(0,0,0,0.07)', borderRadius: 6, padding: 2, gap: 2 }}>
+      <div style={{ display: 'flex', background: 'rgba(0,0,0,0.06)', borderRadius: 6, padding: 2, gap: 2 }}>
         {(['Off', 'On'] as const).map((opt) => {
           const active = (opt === 'On') === value
           return (
@@ -75,7 +72,7 @@ export function ControlPanel() {
       style={{
         position: 'fixed', top: 16, left: 16, bottom: 16,
         width: 240,
-        background: 'rgba(255,255,255,0.88)',
+        background: 'rgba(255, 255, 255, 0.88)',
         backdropFilter: 'blur(24px) saturate(160%)',
         WebkitBackdropFilter: 'blur(24px) saturate(160%)',
         border: '1px solid rgba(0,0,0,0.1)',
@@ -99,6 +96,27 @@ export function ControlPanel() {
         </span>
       </div>
 
+      {/* Name */}
+      <div style={{ padding: '6px 10px' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 10px', height: 32, borderRadius: 6,
+          background: 'rgba(0,0,0,0.04)',
+        }}>
+          <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.45)', fontFamily: 'Inter, sans-serif' }}>Name</span>
+          <input
+            value={store.cardName}
+            onChange={e => store.set({ cardName: e.target.value })}
+            placeholder="Untitled"
+            style={{
+              border: 'none', background: 'none', outline: 'none',
+              fontSize: 12, fontFamily: 'Inter, sans-serif', color: 'rgba(0,0,0,0.75)',
+              textAlign: 'right', width: 120, padding: 0,
+            }}
+          />
+        </div>
+      </div>
+
       {/* Material */}
       <div className="animate-fade-up" style={{ animationDelay: '0.45s' }}>
         <SectionHeader title="Material" open={sections.material} onToggle={() => toggleSection('material')} />
@@ -116,11 +134,11 @@ export function ControlPanel() {
         <SectionHeader title="Shader" open={sections.shader} onToggle={() => toggleSection('shader')} />
         <div className="section-content" data-collapsed={!sections.shader}>
           <div>
-            <SliderRow label="Holo" value={store.holoIntensity} onChange={v => store.set({ holoIntensity: v })} accentColor="rgba(103,200,249,0.25)" />
-            <SliderRow label="Noise" value={store.noiseIntensity} onChange={v => store.set({ noiseIntensity: v })} accentColor="rgba(220,100,180,0.2)" />
-            <SliderRow label="Glow" value={store.glowIntensity} onChange={v => store.set({ glowIntensity: v })} accentColor="rgba(251,180,36,0.25)" />
-            <SliderRow label="Iridescence" value={store.iridescence} onChange={v => store.set({ iridescence: v })} accentColor="rgba(180,120,255,0.25)" />
-            <SliderRow label="Gradient Wave" value={store.gradientWave} onChange={v => store.set({ gradientWave: v })} accentColor="rgba(255,140,80,0.2)" />
+            <SliderRow label="Holo" value={store.holoIntensity} onChange={v => store.set({ holoIntensity: v })} />
+            <SliderRow label="Noise" value={store.noiseIntensity} onChange={v => store.set({ noiseIntensity: v })} />
+            <SliderRow label="Glow" value={store.glowIntensity} onChange={v => store.set({ glowIntensity: v })} />
+            <SliderRow label="Iridescence" value={store.iridescence} onChange={v => store.set({ iridescence: v })} />
+            <SliderRow label="Gradient Wave" value={store.gradientWave} onChange={v => store.set({ gradientWave: v })} />
           </div>
         </div>
       </div>
@@ -130,10 +148,10 @@ export function ControlPanel() {
         <SectionHeader title="Surface" open={sections.surface} onToggle={() => toggleSection('surface')} />
         <div className="section-content" data-collapsed={!sections.surface}>
           <div>
-            <SliderRow label="Brushed Metal" value={store.brushedMetal} onChange={v => store.set({ brushedMetal: v })} accentColor="rgba(160,160,170,0.25)" />
-            <SliderRow label="Carbon Fiber" value={store.carbonFiber} onChange={v => store.set({ carbonFiber: v })} accentColor="rgba(60,60,60,0.2)" />
-            <SliderRow label="Sparkle" value={store.sparkle} onChange={v => store.set({ sparkle: v })} accentColor="rgba(255,220,100,0.25)" />
-            <SliderRow label="Parallax Depth" value={store.parallaxDepth} onChange={v => store.set({ parallaxDepth: v })} accentColor="rgba(80,120,200,0.2)" />
+            <SliderRow label="Brushed Metal" value={store.brushedMetal} onChange={v => store.set({ brushedMetal: v })} />
+            <SliderRow label="Carbon Fiber" value={store.carbonFiber} onChange={v => store.set({ carbonFiber: v })} />
+            <SliderRow label="Sparkle" value={store.sparkle} onChange={v => store.set({ sparkle: v })} />
+            <SliderRow label="Parallax Depth" value={store.parallaxDepth} onChange={v => store.set({ parallaxDepth: v })} />
           </div>
         </div>
       </div>
@@ -143,9 +161,9 @@ export function ControlPanel() {
         <SectionHeader title="Lighting" open={sections.lighting} onToggle={() => toggleSection('lighting')} />
         <div className="section-content" data-collapsed={!sections.lighting}>
           <div>
-            <SliderRow label="Rim Light" value={store.rimLight} onChange={v => store.set({ rimLight: v })} accentColor="rgba(100,180,255,0.25)" />
-            <SliderRow label="Caustics" value={store.caustics} onChange={v => store.set({ caustics: v })} accentColor="rgba(80,200,180,0.2)" />
-            <SliderRow label="Scanline" value={store.scanline} onChange={v => store.set({ scanline: v })} accentColor="rgba(0,255,150,0.15)" />
+            <SliderRow label="Rim Light" value={store.rimLight} onChange={v => store.set({ rimLight: v })} />
+            <SliderRow label="Caustics" value={store.caustics} onChange={v => store.set({ caustics: v })} />
+            <SliderRow label="Scanline" value={store.scanline} onChange={v => store.set({ scanline: v })} />
           </div>
         </div>
       </div>
@@ -155,7 +173,7 @@ export function ControlPanel() {
         <SectionHeader title="Effects" open={sections.effects} onToggle={() => toggleSection('effects')} />
         <div className="section-content" data-collapsed={!sections.effects}>
           <div>
-            <SliderRow label="Shadow" value={store.shadowDepth} onChange={v => store.set({ shadowDepth: v })} accentColor="rgba(100,120,160,0.2)" />
+            <SliderRow label="Shadow" value={store.shadowDepth} onChange={v => store.set({ shadowDepth: v })} />
             <ToggleRow label="Auto Holo" value={autoHolo} onChange={setAutoHolo} />
           </div>
         </div>

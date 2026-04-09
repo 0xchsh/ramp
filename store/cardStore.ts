@@ -5,6 +5,8 @@ export type CardPreset =
   | 'goldFoil' | 'obsidian' | 'roseGold' | 'carbon' | 'cyber' | 'luxury'
 
 interface CardState {
+  // Name
+  cardName: string
   // Tilt
   tiltSensitivity: number        // 0–1
   // Shader — original
@@ -35,6 +37,7 @@ interface CardState {
 }
 
 export const useCardStore = create<CardState>((set) => ({
+  cardName: '',
   tiltSensitivity: 0.5,
   holoIntensity: 0.6,
   noiseIntensity: 0.3,
