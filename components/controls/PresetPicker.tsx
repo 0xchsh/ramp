@@ -24,7 +24,7 @@ export function PresetPicker() {
                 background: p.swatch,
                 border: active ? '2px solid rgba(0,0,0,0.7)' : '2px solid rgba(0,0,0,0.12)',
                 cursor: 'pointer',
-                boxShadow: active ? '0 0 0 3px rgba(0,0,0,0.08)' : 'none',
+                boxShadow: 'none',
                 transition: 'border 0.15s, box-shadow 0.15s',
                 padding: 0,
               }}

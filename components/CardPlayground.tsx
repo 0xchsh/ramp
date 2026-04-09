@@ -6,15 +6,15 @@ const CardScene = dynamic(() => import('./scene/CardScene').then(m => m.CardScen
 
 export function CardPlayground() {
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'relative', background: '#f5f5f5' }}>
-      <CardScene />
-
-      {/* Subtle radial gradient bg */}
+    <div style={{ width: '100vw', height: '100vh', position: 'relative', background: '#f5f5f5', overflow: 'hidden' }}>
+      {/* Subtle radial gradient */}
       <div style={{
         position: 'absolute', inset: 0,
         background: 'radial-gradient(ellipse 70% 50% at 50% 50%, rgba(180,180,255,0.12) 0%, transparent 70%)',
         pointerEvents: 'none',
       }} />
+
+      <CardScene />
 
       <ControlPanel />
     </div>

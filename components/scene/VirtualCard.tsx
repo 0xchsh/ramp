@@ -1,6 +1,6 @@
 'use client'
-import { useRef, useMemo } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useRef, useMemo, useState, useEffect } from 'react'
+import { useFrame, useThree } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import * as THREE from 'three'
 import { createRoundedRectGeometry } from '@/lib/roundedRect'
@@ -103,6 +103,19 @@ export function VirtualCard() {
   const { tiltSensitivity, holoIntensity, noiseIntensity, glowIntensity,
           floatHeight, floatSpeed, preset } = useCardStore()
 
+  const { camera, size } = useThree()
+  const [cardPx, setCardPx] = useState({ w: CARD_W * 96, h: CARD_H * 96, perspective: 1100 })
+  useEffect(() => {
+    const cam = camera as THREE.PerspectiveCamera
+    const tanHalf = Math.tan((cam.fov * Math.PI) / 180 / 2)
+    const pxPerUnit = size.height / (2 * cam.position.z * tanHalf)
+    setCardPx({
+      w: CARD_W * pxPerUnit,
+      h: CARD_H * pxPerUnit,
+      perspective: cam.position.z * pxPerUnit,
+    })
+  }, [camera, size.width, size.height])
+
   const colors = PRESETS[preset]
 
   const geometry = useMemo(() => createRoundedRectGeometry(CARD_W, CARD_H, CARD_R, 8), [])
@@ -149,7 +162,7 @@ export function VirtualCard() {
       if (textRef.current) {
         const rx = groupRef.current.rotation.x * (180 / Math.PI)
         const ry = groupRef.current.rotation.y * (180 / Math.PI)
-        textRef.current.style.transform = `perspective(600px) rotateX(${rx}deg) rotateY(${ry}deg)`
+        textRef.current.style.transform = `perspective(${cardPx.perspective}px) rotateX(${-rx}deg) rotateY(${ry}deg)`
       }
     }
   })
@@ -163,7 +176,7 @@ export function VirtualCard() {
       <Html
         center
         zIndexRange={[50, 0]}
-        style={{ width: `${CARD_W * 96}px`, height: `${CARD_H * 96}px`, pointerEvents: 'none' }}
+        style={{ width: `${cardPx.w}px`, height: `${cardPx.h}px`, pointerEvents: 'none' }}
       >
         <div ref={textRef} style={{ width: '100%', height: '100%', position: 'relative', color: textColor, fontFamily: 'Inter, sans-serif' }}>
           <div style={{ position: 'absolute', top: 20, left: 24 }}>
