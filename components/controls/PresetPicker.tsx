@@ -12,7 +12,7 @@ export function PresetPicker() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
         {(Object.keys(PRESETS) as PresetKey[]).map((key) => {
           const p = PRESETS[key]
           const active = preset === key
@@ -24,11 +24,10 @@ export function PresetPicker() {
               onClick={() => handleSelect(key)}
               title={p.label}
               style={{
-                width: 22, height: 22, borderRadius: '50%',
+                width: '100%', aspectRatio: '1.586', borderRadius: 3,
                 background: p.swatch,
-                border: active ? '2px solid rgba(0,0,0,0.7)' : '2px solid rgba(0,0,0,0.12)',
+                border: active ? '1.5px solid rgba(0,0,0,0.7)' : '1.5px solid rgba(0,0,0,0.1)',
                 cursor: 'pointer',
-                boxShadow: active ? '0 0 0 3px rgba(0,0,0,0.08)' : 'none',
                 padding: 0,
               }}
             />

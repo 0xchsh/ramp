@@ -4,24 +4,13 @@ import { SliderRow } from './SliderRow'
 import { PresetPicker } from './PresetPicker'
 import { useCardStore } from '@/store/cardStore'
 
-function SectionHeader({ title, open, onToggle }: { title: string; open: boolean; onToggle: () => void }) {
+function SectionTitle({ title }: { title: string }) {
   return (
-    <button
-      onClick={onToggle}
-      style={{
-        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '9px 14px', background: 'none', border: 'none',
-        cursor: 'pointer',
-        transition: 'transform 0.12s cubic-bezier(0.22, 1, 0.36, 1)',
-      }}
-      onPointerDown={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(0.98)' }}
-      onPointerUp={(e) => { (e.currentTarget as HTMLElement).style.transform = '' }}
-      onPointerLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = '' }}
-    >
+    <div style={{ padding: '9px 14px' }}>
       <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(0,0,0,0.75)', fontFamily: 'Inter, sans-serif' }}>
         {title}
       </span>
-    </button>
+    </div>
   )
 }
 
@@ -57,15 +46,6 @@ function ToggleRow({ label, value, onChange }: { label: string; value: boolean; 
 export function ControlPanel() {
   const store = useCardStore()
   const [autoHolo, setAutoHolo] = useState(true)
-  const [sections, setSections] = useState({
-    material: true,
-    shader: true,
-    surface: false,
-    lighting: false,
-    effects: true,
-  })
-  const toggleSection = (key: keyof typeof sections) => setSections(s => ({ ...s, [key]: !s[key] }))
-
   return (
     <div
       className="animate-panel-in"
@@ -118,66 +98,36 @@ export function ControlPanel() {
       </div>
 
       {/* Material */}
-      <div className="animate-fade-up" style={{ animationDelay: '0.45s' }}>
-        <SectionHeader title="Material" open={sections.material} onToggle={() => toggleSection('material')} />
-        <div className="section-content" data-collapsed={!sections.material}>
-          <div>
-            <div style={{ padding: '10px 14px 12px' }}>
-              <PresetPicker />
-            </div>
-          </div>
-        </div>
+      <SectionTitle title="Material" />
+      <div style={{ padding: '0 14px 8px' }}>
+        <PresetPicker />
       </div>
 
       {/* Shader */}
-      <div className="animate-fade-up" style={{ animationDelay: '0.5s' }}>
-        <SectionHeader title="Shader" open={sections.shader} onToggle={() => toggleSection('shader')} />
-        <div className="section-content" data-collapsed={!sections.shader}>
-          <div>
-            <SliderRow label="Holo" value={store.holoIntensity} onChange={v => store.set({ holoIntensity: v })} />
-            <SliderRow label="Noise" value={store.noiseIntensity} onChange={v => store.set({ noiseIntensity: v })} />
-            <SliderRow label="Glow" value={store.glowIntensity} onChange={v => store.set({ glowIntensity: v })} />
-            <SliderRow label="Iridescence" value={store.iridescence} onChange={v => store.set({ iridescence: v })} />
-            <SliderRow label="Gradient Wave" value={store.gradientWave} onChange={v => store.set({ gradientWave: v })} />
-          </div>
-        </div>
-      </div>
+      <SectionTitle title="Shader" />
+      <SliderRow label="Holo" value={store.holoIntensity} onChange={v => store.set({ holoIntensity: v })} />
+      <SliderRow label="Noise" value={store.noiseIntensity} onChange={v => store.set({ noiseIntensity: v })} />
+      <SliderRow label="Glow" value={store.glowIntensity} onChange={v => store.set({ glowIntensity: v })} />
+      <SliderRow label="Iridescence" value={store.iridescence} onChange={v => store.set({ iridescence: v })} />
+      <SliderRow label="Gradient Wave" value={store.gradientWave} onChange={v => store.set({ gradientWave: v })} />
 
       {/* Surface */}
-      <div className="animate-fade-up" style={{ animationDelay: '0.55s' }}>
-        <SectionHeader title="Surface" open={sections.surface} onToggle={() => toggleSection('surface')} />
-        <div className="section-content" data-collapsed={!sections.surface}>
-          <div>
-            <SliderRow label="Brushed Metal" value={store.brushedMetal} onChange={v => store.set({ brushedMetal: v })} />
-            <SliderRow label="Carbon Fiber" value={store.carbonFiber} onChange={v => store.set({ carbonFiber: v })} />
-            <SliderRow label="Sparkle" value={store.sparkle} onChange={v => store.set({ sparkle: v })} />
-            <SliderRow label="Parallax Depth" value={store.parallaxDepth} onChange={v => store.set({ parallaxDepth: v })} />
-          </div>
-        </div>
-      </div>
+      <SectionTitle title="Surface" />
+      <SliderRow label="Brushed Metal" value={store.brushedMetal} onChange={v => store.set({ brushedMetal: v })} />
+      <SliderRow label="Carbon Fiber" value={store.carbonFiber} onChange={v => store.set({ carbonFiber: v })} />
+      <SliderRow label="Sparkle" value={store.sparkle} onChange={v => store.set({ sparkle: v })} />
+      <SliderRow label="Parallax Depth" value={store.parallaxDepth} onChange={v => store.set({ parallaxDepth: v })} />
 
       {/* Lighting */}
-      <div className="animate-fade-up" style={{ animationDelay: '0.6s' }}>
-        <SectionHeader title="Lighting" open={sections.lighting} onToggle={() => toggleSection('lighting')} />
-        <div className="section-content" data-collapsed={!sections.lighting}>
-          <div>
-            <SliderRow label="Rim Light" value={store.rimLight} onChange={v => store.set({ rimLight: v })} />
-            <SliderRow label="Caustics" value={store.caustics} onChange={v => store.set({ caustics: v })} />
-            <SliderRow label="Scanline" value={store.scanline} onChange={v => store.set({ scanline: v })} />
-          </div>
-        </div>
-      </div>
+      <SectionTitle title="Lighting" />
+      <SliderRow label="Rim Light" value={store.rimLight} onChange={v => store.set({ rimLight: v })} />
+      <SliderRow label="Caustics" value={store.caustics} onChange={v => store.set({ caustics: v })} />
+      <SliderRow label="Scanline" value={store.scanline} onChange={v => store.set({ scanline: v })} />
 
       {/* Effects */}
-      <div className="animate-fade-up" style={{ animationDelay: '0.65s' }}>
-        <SectionHeader title="Effects" open={sections.effects} onToggle={() => toggleSection('effects')} />
-        <div className="section-content" data-collapsed={!sections.effects}>
-          <div>
-            <SliderRow label="Shadow" value={store.shadowDepth} onChange={v => store.set({ shadowDepth: v })} />
-            <ToggleRow label="Auto Holo" value={autoHolo} onChange={setAutoHolo} />
-          </div>
-        </div>
-      </div>
+      <SectionTitle title="Effects" />
+      <SliderRow label="Shadow" value={store.shadowDepth} onChange={v => store.set({ shadowDepth: v })} />
+      <ToggleRow label="Auto Holo" value={autoHolo} onChange={setAutoHolo} />
     </div>
   )
 }

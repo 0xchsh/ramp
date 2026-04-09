@@ -218,6 +218,7 @@ export function VirtualCard() {
   const mouse = useMouseParallax()
 
   const {
+    cardName,
     tiltSensitivity, holoIntensity, noiseIntensity, glowIntensity,
     brushedMetal, carbonFiber, sparkle, iridescence,
     scanline, parallaxDepth, gradientWave,
@@ -336,7 +337,7 @@ export function VirtualCard() {
               4111  1111  1111  1234
             </div>
             <div style={{ position: 'absolute', bottom: 20, left: 24, fontSize: 11, letterSpacing: '0.05em', opacity: 0.7, fontWeight: 500 }}>
-              CHARLES SHIN
+              {(cardName || 'CHARLES SHIN').toUpperCase()}
             </div>
             <div style={{ position: 'absolute', bottom: 20, right: 22, fontSize: 11, letterSpacing: '0.05em', opacity: 0.7, fontWeight: 500 }}>
               12/28
