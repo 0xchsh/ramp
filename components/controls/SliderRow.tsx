@@ -35,7 +35,7 @@ export function SliderRow({ label, value, onChange, accentColor = 'rgba(99, 120,
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
     >
-      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${value * 100}%`, background: accentColor, borderRadius: '0 2px 2px 0' }} />
+      <div className="slider-fill" style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '100%', transform: `scaleX(${value})`, background: accentColor, borderRadius: '0 2px 2px 0' }} />
       <span style={{ position: 'relative', flex: 1, paddingLeft: 14, fontSize: 12, color: 'rgba(0,0,0,0.75)', fontFamily: 'Inter, sans-serif' }}>
         {label}
       </span>
