@@ -43,7 +43,7 @@ export function CardScene() {
       camera={{ position: [0, 0, 11], fov: 40 }}
       dpr={[1, 2]}
       flat
-      gl={{ antialias: true }}
+      gl={{ antialias: true, preserveDrawingBuffer: true }}
       onCreated={({ gl }) => {
         gl.domElement.addEventListener('webglcontextlost', (e) => {
           e.preventDefault()
