@@ -13,7 +13,7 @@ export function MaterialPicker() {
   const innerActiveR = isMobile ? 9 : 3
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, minWidth: 0 }}>
       {MATERIALS.map((m) => {
         const active = material === m.id
         return (
@@ -24,7 +24,7 @@ export function MaterialPicker() {
             className="preset-swatch"
             data-active={active}
             style={{
-              width: '100%', aspectRatio: '1.586', borderRadius: outerR,
+              width: '100%', aspectRatio: '1.586', minWidth: 0, borderRadius: outerR,
               background: active ? m.thumb : 'transparent',
               border: active ? 'none' : '1px solid rgba(0,0,0,0.12)',
               cursor: 'pointer',

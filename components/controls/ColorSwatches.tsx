@@ -16,7 +16,7 @@ export function ColorSwatches() {
   const { baseColor, set } = useCardStore()
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6, minWidth: 0 }}>
       {COLORS.map((c) => {
         const active = baseColor.toLowerCase() === c.base.toLowerCase()
         const needsOutline = isNearWhite(c.base)
@@ -28,7 +28,7 @@ export function ColorSwatches() {
             title={c.label}
             className="color-swatch"
             style={{
-              width: '100%', aspectRatio: '1',
+              width: '100%', aspectRatio: '1', minWidth: 0,
               borderRadius: '50%',
               background: active ? c.base : 'transparent',
               border: whiteActive
