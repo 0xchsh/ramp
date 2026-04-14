@@ -75,14 +75,21 @@ export function CardScene({
       dpr={[1, 2]}
       flat
       gl={{ antialias: true, preserveDrawingBuffer: true }}
-      // react-use-measure (used internally by R3F Canvas) has scroll:true by default,
-      // which adds a window scroll listener that calls getBoundingClientRect().
-      // On mobile, when the settings sheet is open the card wrapper has scale(0.62)
-      // applied; getBoundingClientRect() returns scaled dimensions, causing R3F to
-      // report a shrunken canvas size and three/drei to misplace the HTML overlay.
-      // scroll:false means sizes are only updated via ResizeObserver, which correctly
-      // reports layout dimensions unaffected by CSS transforms.
-      resize={{ scroll: false }}
+      // react-use-measure (used internally by R3F Canvas) calls getBoundingClientRect()
+      // which includes CSS transform effects from ancestor elements. Two problems:
+      //
+      // 1. The intro animation starts at scale(0.9). When R3F first mounts, the
+      //    ResizeObserver fires and getBoundingClientRect() returns 90% dimensions.
+      //    After the intro plays to scale(1), ResizeObserver never re-fires (layout
+      //    size didn't change), so R3F keeps the wrong 90% value → card off-center.
+      //
+      // 2. On mobile, scrolling the settings sheet triggers a window scroll event.
+      //    The card wrapper has scale(0.62), so getBoundingClientRect() returns 62%
+      //    dimensions → drei misplaces the HTML overlay (upper-left displacement).
+      //
+      // Fix: offsetSize:true → use offsetWidth/offsetHeight (layout dimensions,
+      // immune to CSS transforms). scroll:false → skip window scroll re-measurement.
+      resize={{ scroll: false, offsetSize: true }}
       onCreated={({ gl }) => {
         gl.domElement.addEventListener('webglcontextlost', (e) => {
           e.preventDefault()
