@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import opentype from 'opentype.js'
 
 interface Props {
@@ -20,19 +20,27 @@ function loadFont(): Promise<opentype.Font> {
   return fontPromise
 }
 
+interface Glyph {
+  d: string
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
 interface SigData {
-  glyphs: string[]
+  glyphs: Glyph[]
   viewBox: string
 }
 
 /**
- * Per-glyph outline trace. Each character is a separate stroked path and
- * we reveal them one at a time by setting `stroke-dashoffset` each frame.
- *
- * Uses requestAnimationFrame + setAttribute instead of WAAPI / CSS classes
- * because class restart is unreliable on SVG paths and WAAPI's `fill:forwards`
- * leaves the path in its fully-drawn state until the next delay tick, which
- * made the signature appear pre-drawn on flip.
+ * Per-glyph left-to-right wipe. Each character renders as its own filled
+ * path, clipped by a rect whose width grows from 0 → the glyph's bbox
+ * width over time. Glyphs are staggered in reading order so the signature
+ * fills in letter by letter, left to right — the closest honest approximation
+ * of cursive writing we can do from glyph outlines alone (opentype exposes
+ * perimeters, not centerlines, so a true stroke-trace renders as hollow
+ * double-lines around each letter instead of a pen stroke).
  */
 export function AnimatedSignature({
   text,
@@ -44,14 +52,16 @@ export function AnimatedSignature({
   durationSeconds = 2.2,
 }: Props) {
   const [data, setData] = useState<SigData | null>(null)
-  const glyphRefs = useRef<(SVGPathElement | null)[]>([])
+  const rectRefs = useRef<(SVGRectElement | null)[]>([])
+  const reactId = useId()
+  const clipIdBase = `sig-clip-${reactId.replace(/[^a-zA-Z0-9]/g, '')}`
 
   useEffect(() => {
     let cancelled = false
     loadFont().then((font) => {
       if (cancelled) return
       const fontScale = fontSize / font.unitsPerEm
-      const glyphs: string[] = []
+      const glyphs: Glyph[] = []
       let x = 0
       let prevGlyph: opentype.Glyph | null = null
       let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity
@@ -65,7 +75,13 @@ export function AnimatedSignature({
         const d = p.toPathData(2)
         const bbox = p.getBoundingBox()
         if (d && isFinite(bbox.x1)) {
-          glyphs.push(d)
+          glyphs.push({
+            d,
+            x: bbox.x1,
+            y: bbox.y1,
+            w: Math.max(bbox.x2 - bbox.x1, 0.1),
+            h: bbox.y2 - bbox.y1,
+          })
           xMin = Math.min(xMin, bbox.x1)
           xMax = Math.max(xMax, bbox.x2)
           yMin = Math.min(yMin, bbox.y1)
@@ -92,39 +108,36 @@ export function AnimatedSignature({
     const totalMs = durationSeconds * 1000
     const baseDelayMs = delaySeconds * 1000
     const stepMs = totalMs / n
-    const perGlyphMs = stepMs * 1.4
+    // Slight overlap between consecutive letters so cursive connections
+    // aren't visibly interrupted.
+    const perGlyphMs = stepMs * 1.25
 
-    // Snapshot each glyph's length and force every one into its hidden
-    // start state *now*, before the rAF loop begins, so nothing lingers
-    // from the previous trace.
-    interface Slot { el: SVGPathElement; length: number; startMs: number }
-    const slots: Slot[] = []
+    // Reset every rect to width 0 before the rAF loop starts so no glyph
+    // lingers from the previous trace.
     for (let i = 0; i < n; i++) {
-      const el = glyphRefs.current[i]
-      if (!el) continue
-      const length = el.getTotalLength() || 1
-      el.setAttribute('stroke-dasharray', String(length))
-      el.setAttribute('stroke-dashoffset', String(length))
-      slots.push({ el, length, startMs: baseDelayMs + i * stepMs })
+      const el = rectRefs.current[i]
+      if (el) el.setAttribute('width', '0')
     }
 
     const start = performance.now()
     let raf = 0
-    const easeInOut = (p: number) =>
-      p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2
+    const easeOut = (p: number) => 1 - Math.pow(1 - p, 3)
 
     const step = (now: number) => {
       const t = now - start
       let active = false
-      for (const s of slots) {
-        const elapsed = t - s.startMs
+      for (let i = 0; i < n; i++) {
+        const el = rectRefs.current[i]
+        if (!el) continue
+        const startMs = baseDelayMs + i * stepMs
+        const elapsed = t - startMs
         if (elapsed < 0) {
           active = true
           continue
         }
         const p = Math.min(elapsed / perGlyphMs, 1)
-        const eased = easeInOut(p)
-        s.el.setAttribute('stroke-dashoffset', String(s.length * (1 - eased)))
+        const eased = easeOut(p)
+        el.setAttribute('width', String(data.glyphs[i].w * eased))
         if (p < 1) active = true
       }
       if (active) raf = requestAnimationFrame(step)
@@ -141,18 +154,31 @@ export function AnimatedSignature({
       preserveAspectRatio="xMinYMid meet"
       style={{ width: '100%', height, display: 'block', overflow: 'visible' }}
     >
-      {data?.glyphs.map((d, i) => (
-        <path
-          key={i}
-          ref={el => { glyphRefs.current[i] = el }}
-          d={d}
-          fill="none"
-          stroke={color}
-          strokeWidth={1.2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      ))}
+      {data && (
+        <>
+          <defs>
+            {data.glyphs.map((g, i) => (
+              <clipPath key={i} id={`${clipIdBase}-${i}`}>
+                <rect
+                  ref={el => { rectRefs.current[i] = el }}
+                  x={g.x}
+                  y={g.y - 10}
+                  width={0}
+                  height={g.h + 20}
+                />
+              </clipPath>
+            ))}
+          </defs>
+          {data.glyphs.map((g, i) => (
+            <path
+              key={i}
+              d={g.d}
+              fill={color}
+              clipPath={`url(#${clipIdBase}-${i})`}
+            />
+          ))}
+        </>
+      )}
     </svg>
   )
 }

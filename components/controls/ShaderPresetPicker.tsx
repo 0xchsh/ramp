@@ -8,12 +8,12 @@ export function ShaderPresetPicker() {
   const isActive = (key: ShaderPresetKey) => {
     const v = SHADER_PRESETS[key].values
     return (
-      Math.abs(store.holoIntensity - v.holoIntensity) < 0.01 &&
       store.holoPattern === v.holoPattern &&
-      Math.abs(store.glowIntensity - v.glowIntensity) < 0.01 &&
-      Math.abs(store.iridescence - v.iridescence) < 0.01 &&
-      Math.abs(store.brushedMetal - v.brushedMetal) < 0.01 &&
-      Math.abs(store.carbonFiber - v.carbonFiber) < 0.01
+      Math.abs(store.holoIntensity - v.holoIntensity) < 0.01 &&
+      Math.abs(store.holoSpeed - v.holoSpeed) < 0.01 &&
+      Math.abs(store.holoScale - v.holoScale) < 0.01 &&
+      Math.abs(store.holoVariance - v.holoVariance) < 0.01 &&
+      Math.abs(store.holoRotation - v.holoRotation) < 0.01
     )
   }
 

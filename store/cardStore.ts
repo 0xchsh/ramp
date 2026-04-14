@@ -31,19 +31,8 @@ export interface CardState {
   holoScale: number              // 0–1 (0.5 = 1x density)
   holoVariance: number           // 0–1 (0.5 = 1x contrast)
   holoRotation: number           // 0–1 (0 = none, 1 = full turn)
-  glowIntensity: number          // 0–1
-  iridescence: number            // 0–1
-  gradientWave: number           // 0–1
-  caustics: number               // 0–1
-  scanline: number               // 0–1
-  chromaticAberration: number    // 0–1
-  pulse: number                  // 0–1
-  // Material — surface texture
-  brushedMetal: number           // 0–1
-  carbonFiber: number            // 0–1
-  sparkle: number                // 0–1
+  // Baseline surface noise grain — kept since every material reads it
   noiseIntensity: number         // 0–1
-  parallaxDepth: number          // 0–1
   // Float animation
   floatHeight: number            // 0–1
   floatSpeed: number             // 0–1
@@ -75,19 +64,7 @@ export const useCardStore = create<CardState>((set) => ({
   holoScale: 0.5,
   holoVariance: 0.5,
   holoRotation: 0,
-  glowIntensity: 0.4,
-  iridescence: 0,
-  gradientWave: 0,
-  caustics: 0,
-  scanline: 0,
-  chromaticAberration: 0,
-  pulse: 0,
-  rimLight: 0,
-  brushedMetal: 0,
-  carbonFiber: 0,
-  sparkle: 0,
   noiseIntensity: 0.3,
-  parallaxDepth: 0,
   floatHeight: 0.5,
   floatSpeed: 0.4,
   shadowDepth: 0.5,

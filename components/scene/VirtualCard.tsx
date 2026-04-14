@@ -46,19 +46,7 @@ uniform vec3  uBaseColor2;
 uniform float uHoloIntensity;
 uniform int   uHoloPattern;
 uniform int   uMaterial;
-uniform float uChromaticAberration;
-uniform float uPulse;
 uniform float uNoiseIntensity;
-uniform float uGlowIntensity;
-uniform float uBrushedMetal;
-uniform float uCarbonFiber;
-uniform float uSparkle;
-uniform float uIridescence;
-uniform float uScanline;
-uniform float uParallaxDepth;
-uniform float uGradientWave;
-uniform float uRimLight;
-uniform float uCaustics;
 uniform float uHoloSpeed;
 uniform float uHoloScale;
 uniform float uHoloVariance;
@@ -287,47 +275,13 @@ void main() {
     base += pow(1.0 - nDotV, 2.0) * 0.3;
   }
 
-  /* ── Parallax depth (fake inner layers) ──────── */
-  if (uParallaxDepth > 0.001) {
-    vec3 viewTan = normalize(viewDir - n * dot(viewDir, n));
-    vec2 pOff = viewTan.xy * uParallaxDepth * 0.05;
-    float d1 = snoise((vUv + pOff) * 4.0 + uTime * 0.1);
-    float d2 = snoise((vUv + pOff * 2.0) * 6.0 - uTime * 0.08);
-    float depth = (d1 * 0.5 + d2 * 0.5) * 0.5 + 0.5;
-    base = mix(base, base * (0.8 + depth * 0.4), uParallaxDepth * 0.5);
-  }
-
-  /* ── Carbon fiber weave ──────────────────────── */
-  if (uCarbonFiber > 0.001) {
-    vec2 cfUv = vUv * 24.0;
-    float cf1 = smoothstep(0.35, 0.5, abs(sin(cfUv.x * 3.14159)));
-    float cf2 = smoothstep(0.35, 0.5, abs(sin(cfUv.y * 3.14159)));
-    float checker = step(0.5, fract((floor(cfUv.x) + floor(cfUv.y)) * 0.5));
-    float cfPattern = mix(cf1, cf2, checker);
-    // Subtle sheen shift on the weave
-    float cfSheen = pow(max(dot(reflect(-lightDir, n), viewDir), 0.0), 16.0) * 0.3;
-    vec3 cfColor = base * (0.65 + cfPattern * 0.35) + cfSheen;
-    base = mix(base, cfColor, uCarbonFiber);
-  }
-
-  /* ── Gradient wave (lava lamp) ───────────────── */
-  if (uGradientWave > 0.001) {
-    float wave = sin(vUv.x * 3.0 + vUv.y * 2.0 + uTime * 0.5) * 0.5 + 0.5;
-    float wave2 = sin(vUv.x * 1.5 - vUv.y * 4.0 + uTime * 0.35) * 0.5 + 0.5;
-    vec3 wc1 = uBaseColor * 1.4;
-    vec3 wc2 = uBaseColor2 * 0.6;
-    vec3 waveColor = mix(wc1, wc2, wave * 0.6 + wave2 * 0.4);
-    base = mix(base, waveColor, uGradientWave * 0.45);
-  }
-
   /* ── Pattern layer ─────────────────────────────
      Patterns inherit the card's gradient color. Pattern phase picks between the two
      gradient stops (shifted brighter/darker) so every pattern reads as a 2-tone shimmer
-     in the user's chosen color. Rainbow iridescence is handled separately by the
-     Iridescence slider below. */
-  // Pattern modifiers: speed/scale exponential around 1x at 0.5; variance expands modv
-  // contrast from a flat 0.5 (variance=0) to 2x contrast (variance=1); rotation spins
-  // the sample-space UV around the card's center.
+     in the user's chosen color.
+     Pattern modifiers: speed/scale exponential around 1x at slider=0.5; variance
+     expands modv contrast from a flat 0.5 (variance=0) to 2x contrast (variance=1);
+     rotation spins the sample-space UV around the card's center. */
   float patternSpeed = pow(2.0, (uHoloSpeed - 0.5) * 4.0);
   float patternScale = pow(2.0, (uHoloScale - 0.5) * 4.0);
   float patternRot   = uHoloRotation * 6.28318;
@@ -342,103 +296,15 @@ void main() {
   hAng *= varianceExpand;
   float patternPhase = clamp(hAng * 0.5 + 0.5 + sin(nDotV * 3.0 + uTime * 0.3) * 0.15, 0.0, 1.0);
   vec3 patternColor = mix(uBaseColor * 0.5, uBaseColor2 * 1.45, patternPhase);
-  // Pulse — modulates the pattern intensity over time so the effect throbs in and out.
-  float pulseMod = 1.0 + sin(uTime * 2.2) * uPulse * 0.75;
-  base = mix(base, patternColor, uHoloIntensity * hMod * pulseMod);
-
-  /* ── Iridescence (thin-film interference) ────── */
-  if (uIridescence > 0.001) {
-    float iridAngle = acos(clamp(nDotV, 0.0, 1.0));
-    float filmThickness = 1.2;
-    float iridPhase = 2.0 * filmThickness * iridAngle;
-    vec3 iridColor = 0.5 + 0.5 * cos(6.28318 * (iridPhase * vec3(1.0, 1.2, 1.4) + vec3(0.0, 0.1, 0.2)));
-    base = mix(base, iridColor, uIridescence * fresnel * 2.5);
-  }
-
-  /* ── Brushed metal (anisotropic highlight) ───── */
-  if (uBrushedMetal > 0.001) {
-    vec3 tangent = normalize(vec3(1.0, 0.0, 0.0));
-    vec3 bitangent = cross(n, tangent);
-    vec3 halfVec = normalize(lightDir + viewDir);
-    float tDotH = dot(tangent, halfVec);
-    float bDotH = dot(bitangent, halfVec);
-    float nDotH = dot(n, halfVec);
-    float alphaX = 0.35;
-    float alphaY = 0.02;
-    float exponent = -2.0 * ((tDotH * tDotH) / (alphaX * alphaX) + (bDotH * bDotH) / (alphaY * alphaY)) / (1.001 + nDotH);
-    float aniso = exp(exponent);
-    // Add streak noise for realism
-    float streak = snoise(vec2(vUv.x * 120.0, vUv.y * 2.0)) * 0.5 + 0.5;
-    base += aniso * uBrushedMetal * 0.7 * (0.7 + streak * 0.3);
-  }
-
-  /* ── Sparkle / glitter ───────────────────────── */
-  if (uSparkle > 0.001) {
-    vec2 sparkleCell = floor(vUv * 350.0);
-    float sparkleH = hash21(sparkleCell);
-    float threshold = 1.0 - uSparkle * 0.06;
-    float sparkleAngle = dot(viewDir, vec3(fract(sparkleCell * 0.013), 0.5));
-    float flash = smoothstep(threshold, 1.0, sparkleH)
-                * (0.5 + 0.5 * sin(sparkleAngle * 60.0 + uTime * 4.0));
-    base += flash * uSparkle * 1.6;
-  }
+  base = mix(base, patternColor, uHoloIntensity * hMod);
 
   /* ── Noise grain ─────────────────────────────── */
   float grain = snoise(vUv * 80.0 + uTime * 0.05);
   base += grain * uNoiseIntensity * 0.06;
 
-  /* ── Scanline ────────────────────────────────── */
-  if (uScanline > 0.001) {
-    float scan = 0.5 + 0.5 * sin(vUv.y * 450.0 + uTime * 2.0);
-    float scanBright = 0.5 + 0.5 * sin(vUv.y * 80.0 - uTime * 1.2);
-    base = mix(base, base * scan, uScanline * 0.25);
-    // Faint rolling bright band
-    base += smoothstep(0.6, 1.0, scanBright) * uScanline * 0.06;
-  }
-
-  /* ── Glow — ambient lift across the whole surface + a soft center bloom.
-     Unlike rim light, glow is not edge-biased; it brightens the entire card
-     as if a warm light source is hovering in front of it. */
-  if (uGlowIntensity > 0.001) {
-    // Uniform ambient lift
-    base += uGlowIntensity * 0.22;
-    // Soft radial bloom centered in the card
-    vec2 centered = vUv - 0.5;
-    float centerGlow = 1.0 - smoothstep(0.0, 0.65, length(centered));
-    base += centerGlow * uGlowIntensity * 0.28;
-  }
-
-  /* ── Rim light — narrow bright edge only, cool tint.
-     Uses a high-exponent fresnel so only the grazing edges light up,
-     giving a sharp neon-rim silhouette. */
-  if (uRimLight > 0.001) {
-    float rim = pow(1.0 - nDotV, 5.0);
-    vec3 rimCol = vec3(0.6, 0.9, 1.7);
-    base += rim * uRimLight * rimCol * 2.6;
-  }
-
-  /* ── Caustics ────────────────────────────────── */
-  if (uCaustics > 0.001) {
-    float c1 = sin(vUv.x * 15.0 + uTime * 0.9) * sin(vUv.y * 12.0 + uTime * 0.7);
-    float c2 = sin(vUv.x * 10.0 - uTime * 0.5) * sin(vUv.y * 18.0 + uTime * 1.3);
-    float c3 = sin((vUv.x + vUv.y) * 8.0 + uTime * 0.6);
-    float caustic = pow(max(0.5 + 0.5 * (c1 + c2 * 0.5 + c3 * 0.3), 0.0), 3.0);
-    base += caustic * uCaustics * 0.35;
-  }
-
   /* ── Specular highlight ──────────────────────── */
   float spec = pow(max(dot(reflect(-lightDir, n), viewDir), 0.0), 48.0);
   base += spec * 0.4;
-
-  /* ── Chromatic aberration ──────────────────────
-     Red-cyan split at the fresnel edges (no extra texture samples —
-     just shifts the final color channels based on grazing angle). */
-  if (uChromaticAberration > 0.001) {
-    float edge = pow(1.0 - nDotV, 2.2);
-    base.r += edge * uChromaticAberration * 0.45;
-    base.b -= edge * uChromaticAberration * 0.28;
-    base.g += edge * uChromaticAberration * 0.08;
-  }
 
   gl_FragColor = vec4(clamp(base, 0.0, 1.0), 1.0);
 }
@@ -454,11 +320,7 @@ export function VirtualCard() {
     baseColor, baseColor2,
     tiltSensitivity, holoIntensity, holoPattern, material,
     holoSpeed, holoScale, holoVariance, holoRotation,
-    noiseIntensity, glowIntensity,
-    brushedMetal, carbonFiber, sparkle, iridescence,
-    scanline, parallaxDepth, gradientWave,
-    rimLight, caustics,
-    chromaticAberration, pulse,
+    noiseIntensity,
     floatHeight, floatSpeed,
   } = useCardStore()
 
@@ -498,19 +360,7 @@ export function VirtualCard() {
         uHoloVariance:   { value: s.holoVariance },
         uHoloRotation:   { value: s.holoRotation },
         uMaterial:       { value: MATERIAL_IDS.indexOf(s.material) },
-        uChromaticAberration: { value: s.chromaticAberration },
-        uPulse:          { value: s.pulse },
         uNoiseIntensity: { value: s.noiseIntensity },
-        uGlowIntensity:  { value: s.glowIntensity },
-        uBrushedMetal:   { value: s.brushedMetal },
-        uCarbonFiber:    { value: s.carbonFiber },
-        uSparkle:        { value: s.sparkle },
-        uIridescence:    { value: s.iridescence },
-        uScanline:       { value: s.scanline },
-        uParallaxDepth:  { value: s.parallaxDepth },
-        uGradientWave:   { value: s.gradientWave },
-        uRimLight:       { value: s.rimLight },
-        uCaustics:       { value: s.caustics },
       },
       vertexShader: vertSrc,
       fragmentShader: fragSrc,
@@ -553,19 +403,7 @@ export function VirtualCard() {
     u.uHoloVariance.value  += (holoVariance - u.uHoloVariance.value)  * s
     u.uHoloRotation.value  += (holoRotation - u.uHoloRotation.value)  * s
     u.uMaterial.value = MATERIAL_IDS.indexOf(material)
-    u.uChromaticAberration.value += (chromaticAberration - u.uChromaticAberration.value) * s
-    u.uPulse.value               += (pulse               - u.uPulse.value)               * s
     u.uNoiseIntensity.value += (noiseIntensity - u.uNoiseIntensity.value) * s
-    u.uGlowIntensity.value  += (glowIntensity  - u.uGlowIntensity.value)  * s
-    u.uBrushedMetal.value   += (brushedMetal   - u.uBrushedMetal.value)   * s
-    u.uCarbonFiber.value    += (carbonFiber    - u.uCarbonFiber.value)    * s
-    u.uSparkle.value        += (sparkle        - u.uSparkle.value)        * s
-    u.uIridescence.value    += (iridescence    - u.uIridescence.value)    * s
-    u.uScanline.value       += (scanline       - u.uScanline.value)       * s
-    u.uParallaxDepth.value  += (parallaxDepth  - u.uParallaxDepth.value)  * s
-    u.uGradientWave.value   += (gradientWave   - u.uGradientWave.value)   * s
-    u.uRimLight.value       += (rimLight       - u.uRimLight.value)       * s
-    u.uCaustics.value       += (caustics       - u.uCaustics.value)       * s
 
     targetColor.set(baseColor)
     targetColor2.set(baseColor2)

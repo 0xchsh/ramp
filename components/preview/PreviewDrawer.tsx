@@ -154,11 +154,11 @@ export function PreviewDrawer() {
               <span style={{ fontSize: 13, color: 'rgba(0,0,0,0.5)', marginLeft: 8 }}>left</span>
             </div>
           </div>
-          <div style={{ marginTop: 12, height: 6, borderRadius: 3, background: 'rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+          <div style={{ marginTop: 12, height: 10, borderRadius: 2, background: 'rgba(0,0,0,0.08)', overflow: 'hidden' }}>
             <div style={{
               width: `${spentPct}%`, height: '100%',
               background: 'linear-gradient(90deg, #2563eb 0%, #1e40af 100%)',
-              borderRadius: 3,
+              borderRadius: 2,
               transition: 'width 400ms cubic-bezier(0.22, 1, 0.36, 1)',
             }} />
           </div>
