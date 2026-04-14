@@ -7,7 +7,8 @@ import { useCardStore } from '@/store/cardStore'
 
 function ReactiveContactShadows() {
   const shadowDepth = useCardStore((s) => s.shadowDepth)
-  const opacity = shadowDepth * 0.7
+  const downloadMode = useCardStore((s) => s.downloadMode)
+  const opacity = downloadMode ? 0 : shadowDepth * 0.7
   return (
     <>
       {/* Tight, dark core — stays close under the card */}
@@ -34,13 +35,13 @@ function ReactiveContactShadows() {
   )
 }
 
-export function CardScene() {
+export function CardScene({ cameraZ = 8.8, noShadow = false }: { cameraZ?: number; noShadow?: boolean }) {
   const [canvasKey, setCanvasKey] = useState(0)
 
   return (
     <Canvas
       key={canvasKey}
-      camera={{ position: [0, 0, 11], fov: 40 }}
+      camera={{ position: [0, 0, cameraZ], fov: 40 }}
       dpr={[1, 2]}
       flat
       gl={{ antialias: true, preserveDrawingBuffer: true }}
@@ -57,7 +58,7 @@ export function CardScene() {
       <directionalLight position={[-3, -2, -3]} intensity={0.2} />
 
       <VirtualCard />
-      <ReactiveContactShadows />
+      {!noShadow && <ReactiveContactShadows />}
       <Environment preset="city" />
     </Canvas>
   )

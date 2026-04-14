@@ -1,40 +1,47 @@
 'use client'
-import { useState } from 'react'
 import { SliderRow } from './SliderRow'
-import { PresetPicker } from './PresetPicker'
-import { useCardStore } from '@/store/cardStore'
+import { MaterialPicker } from './MaterialPicker'
+import { ShaderPresetPicker } from './ShaderPresetPicker'
+import { ColorSwatches } from './ColorSwatches'
+import { useCardStore, HOLO_PATTERNS } from '@/store/cardStore'
+import { randomizeCard } from '@/lib/randomize'
 
 function SectionTitle({ title }: { title: string }) {
   return (
-    <div style={{ padding: '9px 14px' }}>
-      <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(0,0,0,0.75)', fontFamily: 'Inter, sans-serif' }}>
+    <div style={{ padding: '10px 14px 6px' }}>
+      <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(0,0,0,0.55)', fontFamily: 'Inter, sans-serif', letterSpacing: 0 }}>
         {title}
       </span>
     </div>
   )
 }
 
-function ToggleRow({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
+
+function HoloPatternPicker() {
+  const { holoPattern, set } = useCardStore()
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 14px', height: 40 }}>
-      <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.75)', fontFamily: 'Inter, sans-serif' }}>{label}</span>
-      <div style={{ display: 'flex', background: 'rgba(0,0,0,0.06)', borderRadius: 6, padding: 2, gap: 2 }}>
-        {(['Off', 'On'] as const).map((opt) => {
-          const active = (opt === 'On') === value
+    <div style={{ padding: '0 14px 4px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 4 }}>
+        {HOLO_PATTERNS.map(p => {
+          const active = holoPattern === p
           return (
             <button
-              key={opt}
-              className="toggle-pill"
-              onClick={() => onChange(opt === 'On')}
+              key={p}
+              onClick={() => set({ holoPattern: p })}
+              className="pill-button"
+              data-active={active}
               style={{
-                padding: '3px 10px', borderRadius: 4, border: 'none', cursor: 'pointer', fontSize: 11,
-                fontFamily: 'Inter, sans-serif', fontWeight: 500,
-                background: active ? '#fff' : 'transparent',
-                color: active ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.35)',
-                boxShadow: active ? '0 1px 4px rgba(0,0,0,0.14)' : 'none',
+                height: 26, borderRadius: 5, padding: '0 6px',
+                border: 'none',
+                background: active ? '#18181b' : 'rgba(0,0,0,0.04)',
+                cursor: 'pointer',
+                fontSize: 11, fontWeight: 500,
+                fontFamily: 'Inter, sans-serif',
+                color: active ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.6)',
+                textTransform: 'capitalize',
               }}
             >
-              {opt}
+              {p}
             </button>
           )
         })}
@@ -45,20 +52,28 @@ function ToggleRow({ label, value, onChange }: { label: string; value: boolean; 
 
 export function ControlPanel() {
   const store = useCardStore()
-  const [autoHolo, setAutoHolo] = useState(true)
+  const previewOpen = store.previewOpen
   return (
     <div
-      className="animate-panel-in"
       style={{
         position: 'fixed', top: 16, left: 16, bottom: 16,
         width: 240,
+        zIndex: 100,
+        transform: previewOpen ? 'translateX(calc(-100% - 32px))' : 'translateX(0)',
+        transition: 'transform 480ms cubic-bezier(0.22, 1, 0.36, 1)',
+        willChange: 'transform',
+      }}
+    >
+    <div
+      className="animate-panel-in"
+      style={{
+        width: '100%', height: '100%',
         background: 'rgba(255, 255, 255, 0.88)',
         backdropFilter: 'blur(24px) saturate(160%)',
         WebkitBackdropFilter: 'blur(24px) saturate(160%)',
         border: '1px solid rgba(0,0,0,0.1)',
         borderRadius: 12,
         overflowY: 'auto',
-        zIndex: 100,
         boxShadow: '0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)',
         animationDelay: '0.4s',
       }}
@@ -67,17 +82,16 @@ export function ControlPanel() {
       <div
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '12px 14px',
-          borderBottom: '1px solid rgba(0,0,0,0.07)',
+          padding: '12px 14px 4px',
         }}
       >
         <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.82)', fontFamily: 'Inter, sans-serif', letterSpacing: '-0.01em' }}>
-          Card Controls
+          Customize Ramp Card
         </span>
       </div>
 
       {/* Name */}
-      <div style={{ padding: '6px 10px' }}>
+      <div style={{ padding: '2px 10px' }}>
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '0 10px', height: 32, borderRadius: 6,
@@ -87,7 +101,7 @@ export function ControlPanel() {
           <input
             value={store.cardName}
             onChange={e => store.set({ cardName: e.target.value })}
-            placeholder="Untitled"
+            placeholder="Charles Shin"
             style={{
               border: 'none', background: 'none', outline: 'none',
               fontSize: 12, fontFamily: 'Inter, sans-serif', color: 'rgba(0,0,0,0.75)',
@@ -97,37 +111,68 @@ export function ControlPanel() {
         </div>
       </div>
 
-      {/* Material */}
-      <SectionTitle title="Material" />
-      <div style={{ padding: '0 14px 8px' }}>
-        <PresetPicker />
+      {/* Randomize */}
+      <div style={{ padding: '4px 10px 6px' }}>
+        <button
+          onClick={() => randomizeCard(store.set)}
+          title="Randomize"
+          aria-label="Randomize"
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            width: '100%', height: 32, borderRadius: 6, border: 'none', cursor: 'pointer',
+            background: 'rgba(0,0,0,0.04)', color: 'rgba(0,0,0,0.7)',
+            fontSize: 12, fontFamily: 'Inter, sans-serif', fontWeight: 500,
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.08)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')}
+        >
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="1.5" y="1.5" width="13" height="13" rx="2.5" />
+            <circle cx="5" cy="5" r="0.8" fill="currentColor" stroke="none" />
+            <circle cx="11" cy="5" r="0.8" fill="currentColor" stroke="none" />
+            <circle cx="8" cy="8" r="0.8" fill="currentColor" stroke="none" />
+            <circle cx="5" cy="11" r="0.8" fill="currentColor" stroke="none" />
+            <circle cx="11" cy="11" r="0.8" fill="currentColor" stroke="none" />
+          </svg>
+          Randomize
+        </button>
       </div>
 
-      {/* Shader */}
-      <SectionTitle title="Shader" />
-      <SliderRow label="Holo" value={store.holoIntensity} onChange={v => store.set({ holoIntensity: v })} />
-      <SliderRow label="Noise" value={store.noiseIntensity} onChange={v => store.set({ noiseIntensity: v })} />
-      <SliderRow label="Glow" value={store.glowIntensity} onChange={v => store.set({ glowIntensity: v })} />
-      <SliderRow label="Iridescence" value={store.iridescence} onChange={v => store.set({ iridescence: v })} />
-      <SliderRow label="Gradient Wave" value={store.gradientWave} onChange={v => store.set({ gradientWave: v })} />
+      {/* Material — surface type (matte, metal, glass, holo) */}
+      <SectionTitle title="Material" />
+      <div style={{ padding: '0 14px 10px' }}>
+        <MaterialPicker />
+      </div>
 
-      {/* Surface */}
-      <SectionTitle title="Surface" />
-      <SliderRow label="Brushed Metal" value={store.brushedMetal} onChange={v => store.set({ brushedMetal: v })} />
-      <SliderRow label="Carbon Fiber" value={store.carbonFiber} onChange={v => store.set({ carbonFiber: v })} />
-      <SliderRow label="Sparkle" value={store.sparkle} onChange={v => store.set({ sparkle: v })} />
-      <SliderRow label="Parallax Depth" value={store.parallaxDepth} onChange={v => store.set({ parallaxDepth: v })} />
+      {/* Color — curated pure-color swatches */}
+      <SectionTitle title="Color" />
+      <div style={{ padding: '0 14px 10px' }}>
+        <ColorSwatches />
+      </div>
 
-      {/* Lighting */}
-      <SectionTitle title="Lighting" />
-      <SliderRow label="Rim Light" value={store.rimLight} onChange={v => store.set({ rimLight: v })} />
-      <SliderRow label="Caustics" value={store.caustics} onChange={v => store.set({ caustics: v })} />
-      <SliderRow label="Scanline" value={store.scanline} onChange={v => store.set({ scanline: v })} />
+      {/* Presets — whole-card shader shortcuts */}
+      <SectionTitle title="Presets" />
+      <div style={{ padding: '0 14px 8px' }}>
+        <ShaderPresetPicker />
+      </div>
 
-      {/* Effects */}
-      <SectionTitle title="Effects" />
+      {/* Patterns — just the picker; tuning lives in Settings below */}
+      <SectionTitle title="Patterns" />
+      <HoloPatternPicker />
+
+      {/* Settings — modifiers that shape whichever pattern is active */}
+      <SectionTitle title="Settings" />
+      <SliderRow label="Intensity" value={store.holoIntensity} onChange={v => store.set({ holoIntensity: v })} />
+      <SliderRow label="Speed" value={store.holoSpeed} onChange={v => store.set({ holoSpeed: v })} />
+      <SliderRow label="Scale" value={store.holoScale} onChange={v => store.set({ holoScale: v })} />
+      <SliderRow label="Variance" value={store.holoVariance} onChange={v => store.set({ holoVariance: v })} />
+      <SliderRow label="Rotation" value={store.holoRotation} onChange={v => store.set({ holoRotation: v })} />
+
+      {/* Scene */}
+      <SectionTitle title="Scene" />
       <SliderRow label="Shadow" value={store.shadowDepth} onChange={v => store.set({ shadowDepth: v })} />
-      <ToggleRow label="Auto Holo" value={autoHolo} onChange={setAutoHolo} />
+      <div style={{ height: 16 }} />
+    </div>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 'use client'
-import { useRef, useCallback } from 'react'
+import { useCallback } from 'react'
 
 interface SliderRowProps {
   label: string
@@ -9,34 +9,57 @@ interface SliderRowProps {
 }
 
 export function SliderRow({ label, value, onChange, accentColor = 'rgba(0, 0, 0, 0.08)' }: SliderRowProps) {
-  const dragging = useRef(false)
-  const lastX = useRef(0)
+  // Drag handler uses window-level listeners so the slider keeps receiving
+  // events even when the cursor leaves the element, the panel, or the browser
+  // window entirely. The current value is tracked in a local closure variable
+  // instead of reading the React prop on every move, so fast drags aren't
+  // throttled by React render batching.
+  const onPointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      e.preventDefault()
+      let lastX = e.clientX
+      let current = value
 
-  const onPointerDown = useCallback((e: React.PointerEvent) => {
-    dragging.current = true
-    lastX.current = e.clientX
-    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
-    e.preventDefault()
-  }, [])
+      const handleMove = (ev: PointerEvent) => {
+        const dx = ev.clientX - lastX
+        lastX = ev.clientX
+        current = Math.min(1, Math.max(0, current + dx * 0.006))
+        onChange(current)
+      }
 
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!dragging.current) return
-    const dx = e.clientX - lastX.current
-    lastX.current = e.clientX
-    onChange(Math.min(1, Math.max(0, value + dx * 0.006)))
-  }, [value, onChange])
+      const handleUp = () => {
+        window.removeEventListener('pointermove', handleMove)
+        window.removeEventListener('pointerup', handleUp)
+        window.removeEventListener('pointercancel', handleUp)
+      }
 
-  const onPointerUp = useCallback(() => { dragging.current = false }, [])
+      window.addEventListener('pointermove', handleMove)
+      window.addEventListener('pointerup', handleUp)
+      window.addEventListener('pointercancel', handleUp)
+    },
+    [value, onChange],
+  )
 
   return (
-    <div style={{ padding: '3px 10px' }}>
+    <div style={{ padding: '3px 14px' }}>
       <div
-        style={{ position: 'relative', height: 32, display: 'flex', alignItems: 'center', cursor: 'ew-resize', userSelect: 'none', borderRadius: 6, background: 'rgba(0,0,0,0.04)', overflow: 'hidden' }}
+        style={{
+          position: 'relative', height: 32,
+          display: 'flex', alignItems: 'center',
+          cursor: 'ew-resize', userSelect: 'none',
+          borderRadius: 6, background: 'rgba(0,0,0,0.04)', overflow: 'hidden',
+          touchAction: 'none',
+        }}
         onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
       >
-        <div className="slider-fill" style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '100%', transform: `scaleX(${value})`, background: accentColor, borderRadius: '0 2px 2px 0' }} />
+        <div
+          className="slider-fill"
+          style={{
+            position: 'absolute', left: 0, top: 0, bottom: 0, width: '100%',
+            transform: `scaleX(${value})`, background: accentColor,
+            borderRadius: '0 2px 2px 0',
+          }}
+        />
         <span style={{ position: 'relative', flex: 1, paddingLeft: 10, fontSize: 12, color: 'rgba(0,0,0,0.75)', fontFamily: 'Inter, sans-serif' }}>
           {label}
         </span>

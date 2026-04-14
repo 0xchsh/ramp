@@ -7,7 +7,7 @@ export function PresetPicker() {
 
   const handleSelect = (key: PresetKey) => {
     const p = PRESETS[key]
-    set({ preset: key, ...p.shaderDefaults })
+    set({ preset: key, baseColor: p.base, baseColor2: p.base2, ...p.shaderDefaults })
   }
 
   return (

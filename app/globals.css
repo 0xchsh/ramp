@@ -10,7 +10,13 @@ html, body {
 
 /* R3F v9 always uses alpha:true — canvas CSS bg shows through transparent pixels */
 canvas {
-  background: #f5f5f5 !important;
+  background: #f5f5f5;
+}
+
+/* Inside the preview drawer the backdrop is white, so the canvas should be transparent
+   and blend into the page rather than draw its own gray box. */
+.preview-card canvas {
+  background: transparent !important;
 }
 
 /* ── Animation utilities ─────────────────────────────── */
@@ -109,6 +115,61 @@ canvas {
 .slider-fill {
   transform-origin: left;
   transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── Selection pill (Presets, Patterns) ─────────────────
+   Small rectangular text buttons that are either inactive (light gray)
+   or active (dark zinc). Hover lifts the background, active-state hover
+   brightens the dark bg slightly, press scales down for tactile feedback. */
+.pill-button {
+  transition:
+    background 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 140ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pill-button:hover:not([data-active="true"]) {
+    background: rgba(0,0,0,0.075) !important;
+    color: rgba(0,0,0,0.82) !important;
+  }
+  .pill-button[data-active="true"]:hover {
+    background: #27272a !important;
+  }
+}
+.pill-button:active {
+  transform: scale(0.96);
+}
+
+/* ── Color swatch circle ────────────────────────────── */
+.color-swatch {
+  transition:
+    padding 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    background 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (hover: hover) and (pointer: fine) {
+  .color-swatch:hover {
+    transform: scale(1.08);
+    border-color: rgba(0,0,0,0.25);
+  }
+}
+.color-swatch:active {
+  transform: scale(0.93);
+}
+
+/* ── Material check overlay ─────────────────────────── */
+.material-overlay {
+  opacity: 0;
+  transform: scale(0.82);
+  transition:
+    opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+.material-overlay[data-active="true"] {
+  opacity: 1;
+  transform: scale(1);
 }
 
 /* Reduced motion */
