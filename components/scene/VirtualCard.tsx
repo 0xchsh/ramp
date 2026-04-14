@@ -1,5 +1,5 @@
 'use client'
-import { useRef, useMemo, useState, useEffect } from 'react'
+import { useRef, useMemo, useState } from 'react'
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import * as THREE from 'three'
@@ -386,8 +386,15 @@ export function VirtualCard() {
   const textColor = textDark ? '#1a1a1a' : '#f0f0f0'
 
   const { camera, size } = useThree()
-  const [cardPx, setCardPx] = useState({ w: CARD_W * 96, h: CARD_H * 96, perspective: 1100, fit: 1 })
-  useEffect(() => {
+  // Compute synchronously (useMemo) so the first render already has the correct
+  // card dimensions. Guard against size={0,0} (R3F's initial value before it
+  // measures the container) which would produce NaN and cause a visual glitch.
+  // ReadySignal also waits for non-zero size before firing, so the intro never
+  // starts until this value is valid.
+  const cardPx = useMemo(() => {
+    if (size.width === 0 || size.height === 0) {
+      return { w: 0, h: 0, perspective: 1100, fit: 0 }
+    }
     const cam = camera as THREE.PerspectiveCamera
     const tanHalf = Math.tan((cam.fov * Math.PI) / 180 / 2)
     const pxPerUnit = size.height / (2 * cam.position.z * tanHalf)
@@ -400,12 +407,12 @@ export function VirtualCard() {
     const widthBudget = size.width * (isMobile ? 0.84 : 0.9)
     const heightBudget = size.height * (isMobile ? 0.58 : 0.85)
     const fit = Math.min(1, widthBudget / naturalW, heightBudget / naturalH)
-    setCardPx({
+    return {
       w: naturalW * fit,
       h: naturalH * fit,
       perspective: cam.position.z * pxPerUnit,
       fit,
-    })
+    }
   }, [camera, size.width, size.height])
 
   const geometry = useMemo(() => createRoundedRectGeometry(CARD_W, CARD_H, CARD_R, 8), [])

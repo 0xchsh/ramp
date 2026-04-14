@@ -1,5 +1,5 @@
 'use client'
-import { useCallback, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import html2canvas from 'html2canvas'
 import { SlidersHorizontal, DiceFive } from '@phosphor-icons/react'
@@ -32,14 +32,31 @@ export function CardPlayground() {
   // (and therefore a second <canvas> + .card-face-root when open).
   const sceneWrapperRef = useRef<HTMLDivElement>(null)
 
-  // CardScene calls this on its first rendered frame, which is the earliest
-  // moment the card is actually visible (after Environment HDR + shaders load).
-  // Gating the intro on that signal means the fade+scale always wraps a real
-  // card, never an empty canvas.
+  // Tracks whether THIS component instance is still mounted. Used by the
+  // double-rAF guard in handleSceneReady to cancel deferred state updates
+  // after React Strict Mode's synchronous unmount/remount cycle, which would
+  // otherwise fire the animation twice (once mid-way on mount #1, then again
+  // instantly on mount #2 when didPlayIntro is already true).
+  const mountedRef = useRef(true)
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false }
+  }, [])
+
+  // CardScene calls this on its first rendered frame (after ReadySignal confirms
+  // the canvas has valid dimensions). We defer through two rAFs so that React
+  // Strict Mode's synchronous unmount/remount completes before we commit the
+  // state change — the guard then skips the update on the discarded mount #1
+  // and lets mount #2 play the animation cleanly.
   const handleSceneReady = useCallback(() => {
     if (didPlayIntro) return
-    didPlayIntro = true
-    setIntroPlayed(true)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!mountedRef.current) return
+        didPlayIntro = true
+        setIntroPlayed(true)
+      })
+    })
   }, [])
 
   // Randomize in useLayoutEffect so the store isn't mutated mid-render (which
@@ -141,6 +158,10 @@ export function CardPlayground() {
             the card is visible in the area above the sheet. */}
         <div ref={sceneWrapperRef} style={{
           position: 'absolute', inset: 0,
+          // visibility:hidden is belt-and-suspenders alongside opacity:0 — WebGL
+          // canvases are promoted to their own GPU compositing layer and can bleed
+          // through a parent's opacity:0 in some browser/driver combos.
+          visibility: introPlayed ? 'visible' : 'hidden',
           opacity: introPlayed ? 1 : 0,
           transform: introPlayed ? 'scale(1)' : 'scale(0.9)',
           transformOrigin: 'center center',

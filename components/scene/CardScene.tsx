@@ -5,13 +5,16 @@ import { Environment, ContactShadows } from '@react-three/drei'
 import { VirtualCard } from './VirtualCard'
 import { useCardStore } from '@/store/cardStore'
 
-// Fires onReady on the first rendered frame. Because useFrame only ticks after
-// all Suspense children (Environment HDR, textures) have resolved, this is the
-// earliest moment the card is actually visible to the user.
+// Fires onReady once the canvas has valid dimensions and at least one frame has
+// rendered. The size guard prevents premature firing when R3F hasn't measured
+// the container yet (which happens on the very first render pass and produces
+// NaN card dimensions — causing a visible flash before the correct size lands).
 function ReadySignal({ onReady }: { onReady: () => void }) {
   const fired = useRef(false)
+  const { size } = useThree()
   useFrame(() => {
     if (fired.current) return
+    if (size.width === 0 || size.height === 0) return
     fired.current = true
     onReady()
   })
