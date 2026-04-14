@@ -142,7 +142,10 @@ export function CardPlayground() {
     <div style={{ width: '100vw', height: '100svh', minHeight: 400, position: 'relative', background: '#f5f5f5', overflow: 'hidden' }}>
       {!isMobile && <ControlPanel />}
 
-      <div style={{ position: 'absolute', inset: 0 }}>
+      {/* On desktop the control panel is fixed at left:16 width:240 (right edge
+          at 256px). Offsetting the card area's left by that amount makes Three.js
+          center the card in the remaining viewport space rather than the full vw. */}
+      <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: isMobile ? 0 : 256 }}>
         {/* Subtle radial gradient */}
         <div style={{
           position: 'absolute', inset: 0,
