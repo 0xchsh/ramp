@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import NumberFlow from '@number-flow/react'
 import { useCardStore } from '@/store/cardStore'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 const CardScene = dynamic(() => import('@/components/scene/CardScene').then(m => m.CardScene), { ssr: false })
 
@@ -42,25 +43,25 @@ interface ActivityEntry {
 
 const ACTIVITY: ActivityEntry[] = [
   {
-    user: 'Kallista Halim',
+    user: 'Alex Rivera',
     datetime: 'Feb 21, 2026, 7:32 PM',
     action: 'Updated funds',
     details: 'Amount: $2,500.00 · Frequency: Annual · Can spend on: All categories and all merchants.',
   },
   {
-    user: 'Kallista Halim',
+    user: 'Alex Rivera',
     datetime: 'Jan 4, 2026, 6:55 PM',
     action: 'Updated funds',
     details: 'Amount: $1,800.00 · Frequency: Annual · Can spend on: All categories and all merchants.',
   },
   {
-    user: 'Kallista Halim',
+    user: 'Alex Rivera',
     datetime: 'Nov 7, 2025, 2:48 PM',
     action: 'Updated funds',
     details: 'Amount: $1,500.00 · Frequency: Annual · Can spend on: All categories and all merchants.',
   },
   {
-    user: 'Kallista Halim',
+    user: 'Alex Rivera',
     datetime: 'Apr 5, 2025, 11:21 AM',
     action: 'Issued funds',
     details:
@@ -97,6 +98,10 @@ export function PreviewDrawer() {
   const [topTab, setTopTab] = useState<'overview' | 'activity'>('overview')
   const [issuedOpen, setIssuedOpen] = useState(true)
   const [animated, setAnimated] = useState(false)
+  const isMobile = useIsMobile()
+  // Horizontal padding collapses from 40px → 20px on mobile so the card+details
+  // section stops overflowing; rest of the drawer follows the same rhythm.
+  const padX = isMobile ? 20 : 40
 
   // Escape key
   useEffect(() => {
@@ -192,9 +197,9 @@ export function PreviewDrawer() {
         </button>
 
         {/* Header */}
-        <div style={{ padding: '32px 40px 0' }}>
+        <div style={{ padding: `32px ${padX}px 0` }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-            <h1 style={{ fontSize: 32, fontWeight: 600, letterSpacing: '-0.02em', margin: 0, color: 'rgba(0,0,0,0.9)' }}>
+            <h1 style={{ fontSize: isMobile ? 24 : 32, fontWeight: 600, letterSpacing: '-0.02em', margin: 0, color: 'rgba(0,0,0,0.9)' }}>
               Software Subscriptions
             </h1>
           </div>
@@ -209,7 +214,7 @@ export function PreviewDrawer() {
         {topTab === 'overview' && (
         <>
         {/* Spending bar */}
-        <div style={{ padding: '24px 40px', background: '#fafafa' }}>
+        <div style={{ padding: `24px ${padX}px`, background: '#fafafa' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'baseline' }}>
               <NumberFlow
@@ -247,15 +252,26 @@ export function PreviewDrawer() {
           </div>
         </div>
 
-        {/* Card + details */}
-        <div style={{ padding: '28px 40px', display: 'flex', gap: 24, alignItems: 'center', overflow: 'visible' }}>
+        {/* Card + details — row on desktop, stacked column on mobile so the
+            details don't get clipped by the narrow drawer. */}
+        <div style={{
+          padding: `28px ${padX}px`,
+          display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
+          gap: isMobile ? 20 : 24,
+          alignItems: isMobile ? 'stretch' : 'center',
+          overflow: 'visible',
+        }}>
           <div
             className="preview-card"
             style={{
               position: 'relative',
-              width: 300, height: 188,
+              width: isMobile ? '100%' : 300,
+              height: isMobile ? 180 : 188,
               flexShrink: 0,
               overflow: 'visible',
+              alignSelf: isMobile ? 'center' : 'auto',
+              maxWidth: isMobile ? 300 : undefined,
             }}
           >
             {/* Canvas is intentionally larger than the card slot so the flip
@@ -268,7 +284,7 @@ export function PreviewDrawer() {
               {previewOpen && <CardScene cameraZ={4.6} noShadow />}
             </div>
           </div>
-          <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr', gap: 14 }}>
+          <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr', gap: 14, minWidth: 0 }}>
             <Field label="Name on card" value={displayName} copyable />
             <Field label="Card number" value="•••• •••• •••• 1234" copyable />
             <Field
@@ -284,7 +300,7 @@ export function PreviewDrawer() {
         </div>
 
         {/* What's issued */}
-        <div style={{ padding: '8px 40px 24px' }}>
+        <div style={{ padding: `8px ${padX}px 24px` }}>
           <Disclosure
             title="What's issued?"
             open={issuedOpen}
@@ -320,7 +336,7 @@ export function PreviewDrawer() {
         </div>
 
         {/* Policies */}
-        <div style={{ padding: '12px 40px 24px' }}>
+        <div style={{ padding: `12px ${padX}px 24px` }}>
           <h3 style={{ fontSize: 15, fontWeight: 600, margin: '0 0 12px', color: 'rgba(0,0,0,0.9)' }}>Policies</h3>
           <div style={{
             border: '1px solid rgba(0,0,0,0.08)', borderRadius: 10,
@@ -336,7 +352,7 @@ export function PreviewDrawer() {
         </div>
 
         {/* Recent activity */}
-        <div style={{ padding: '8px 40px 40px' }}>
+        <div style={{ padding: `8px ${padX}px 40px` }}>
           <h3 style={{ fontSize: 15, fontWeight: 600, margin: '0 0 12px', color: 'rgba(0,0,0,0.9)' }}>Recent activity</h3>
 
           <div style={{ marginTop: 10 }}>
@@ -393,7 +409,7 @@ export function PreviewDrawer() {
         )}
 
         {topTab === 'activity' && (
-          <div style={{ padding: '28px 40px 40px' }}>
+          <div style={{ padding: `28px ${padX}px 40px` }}>
             {ACTIVITY.map((entry, i) => (
               <ActivityRow key={i} entry={entry} isLast={i === ACTIVITY.length - 1} />
             ))}
@@ -466,7 +482,7 @@ function Field({
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 16, alignItems: 'start' }}>
       <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.5)', paddingTop: 2 }}>{label}</div>
-      <div style={{ display: 'flex', alignItems: 'start', gap: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'start', gap: 2 }}>
         <div style={{ fontSize: 14, color: 'rgba(0,0,0,0.88)', lineHeight: 1.45 }}>
           {multiline ? multiline.map((l, i) => <div key={i}>{l}</div>) : value}
         </div>

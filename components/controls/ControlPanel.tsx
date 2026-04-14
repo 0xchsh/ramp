@@ -49,45 +49,22 @@ function HoloPatternPicker() {
   )
 }
 
-export function ControlPanel() {
+export function ControlPanelBody({ showHeader = true }: { showHeader?: boolean }) {
   const store = useCardStore()
-  const previewOpen = store.previewOpen
   return (
-    <div
-      style={{
-        position: 'fixed', top: 16, left: 16, bottom: 16,
-        width: 240,
-        zIndex: 100,
-        transform: previewOpen ? 'translateX(calc(-100% - 32px))' : 'translateX(0)',
-        transition: 'transform 480ms cubic-bezier(0.22, 1, 0.36, 1)',
-        willChange: 'transform',
-      }}
-    >
-    <div
-      className="animate-panel-in"
-      style={{
-        width: '100%', height: '100%',
-        background: 'rgba(255, 255, 255, 0.88)',
-        backdropFilter: 'blur(24px) saturate(160%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(160%)',
-        border: '1px solid rgba(0,0,0,0.1)',
-        borderRadius: 12,
-        overflowY: 'auto',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)',
-        animationDelay: '0.4s',
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '12px 14px 4px',
-        }}
-      >
-        <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.82)', fontFamily: 'Inter, sans-serif', letterSpacing: '-0.01em' }}>
-          Customize Ramp Card
-        </span>
-      </div>
+    <>
+      {showHeader && (
+        <div
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '12px 14px 4px',
+          }}
+        >
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.82)', fontFamily: 'Inter, sans-serif', letterSpacing: '-0.01em' }}>
+            Customize Ramp Card
+          </span>
+        </div>
+      )}
 
       {/* Name */}
       <div style={{ padding: '2px 10px' }}>
@@ -165,7 +142,39 @@ export function ControlPanel() {
       <SectionTitle title="Scene" />
       <SliderRow label="Shadow" value={store.shadowDepth} onChange={v => store.set({ shadowDepth: v })} />
       <div style={{ height: 16 }} />
-    </div>
+    </>
+  )
+}
+
+export function ControlPanel() {
+  const previewOpen = useCardStore((s) => s.previewOpen)
+  return (
+    <div
+      style={{
+        position: 'fixed', top: 16, left: 16, bottom: 16,
+        width: 240,
+        zIndex: 100,
+        transform: previewOpen ? 'translateX(calc(-100% - 32px))' : 'translateX(0)',
+        transition: 'transform 480ms cubic-bezier(0.22, 1, 0.36, 1)',
+        willChange: 'transform',
+      }}
+    >
+      <div
+        className="animate-panel-in"
+        style={{
+          width: '100%', height: '100%',
+          background: 'rgba(255, 255, 255, 0.88)',
+          backdropFilter: 'blur(24px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(160%)',
+          border: '1px solid rgba(0,0,0,0.1)',
+          borderRadius: 12,
+          overflowY: 'auto',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)',
+          animationDelay: '0.4s',
+        }}
+      >
+        <ControlPanelBody />
+      </div>
     </div>
   )
 }

@@ -1,0 +1,20 @@
+'use client'
+import { useEffect, useState } from 'react'
+
+const MOBILE_BREAKPOINT = 768
+
+export function useIsMobile() {
+  // Start with `false` so SSR and the first client render agree — then
+  // the effect below updates to the real viewport width before paint.
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
+    const update = () => setIsMobile(mql.matches)
+    update()
+    mql.addEventListener('change', update)
+    return () => mql.removeEventListener('change', update)
+  }, [])
+
+  return isMobile
+}

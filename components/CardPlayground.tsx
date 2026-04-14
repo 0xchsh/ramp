@@ -2,10 +2,13 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import html2canvas from 'html2canvas'
+import { SlidersHorizontal, DiceFive } from '@phosphor-icons/react'
 import { ControlPanel } from './controls/ControlPanel'
+import { MobileSettingsSheet } from './controls/MobileSettingsSheet'
 import { PreviewDrawer } from './preview/PreviewDrawer'
 import { FlipCursor } from './FlipCursor'
 import { useCardStore } from '@/store/cardStore'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { randomizeCard } from '@/lib/randomize'
 
 const CardScene = dynamic(() => import('./scene/CardScene').then(m => m.CardScene), { ssr: false })
@@ -22,6 +25,8 @@ export function CardPlayground() {
   const set = useCardStore(s => s.set)
   const initRef = useRef(false)
   const [introPlayed, setIntroPlayed] = useState(didPlayIntro)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const isMobile = useIsMobile()
   // Scoping DOM queries for the download handler to the main scene avoids
   // collisions with the preview drawer, which renders its own <CardScene/>
   // (and therefore a second <canvas> + .card-face-root when open).
@@ -118,8 +123,8 @@ export function CardPlayground() {
   }, [set])
 
   return (
-    <div style={{ width: '100vw', height: '100vh', minWidth: 500, minHeight: 400, position: 'relative', background: '#f5f5f5', overflow: 'hidden' }}>
-      <ControlPanel />
+    <div style={{ width: '100vw', height: '100vh', minHeight: 400, position: 'relative', background: '#f5f5f5', overflow: 'hidden' }}>
+      {!isMobile && <ControlPanel />}
 
       <div style={{ position: 'absolute', inset: 0 }}>
         {/* Subtle radial gradient */}
@@ -131,7 +136,10 @@ export function CardPlayground() {
 
         {/* Intro: scale up + fade in on first paint. Wraps both the canvas
             and drei's <Html> portal (which mounts into canvas.parentNode)
-            so the 3D card and its text overlay animate in together. */}
+            so the 3D card and its text overlay animate in together.
+            On mobile, when the settings sheet is open, the whole stack
+            lifts above the vaul overlay via z-index and translates up so
+            the card is visible in the area above the sheet. */}
         <div ref={sceneWrapperRef} style={{
           position: 'absolute', inset: 0,
           opacity: introPlayed ? 1 : 0,
@@ -139,35 +147,101 @@ export function CardPlayground() {
           transformOrigin: 'center center',
           transition: 'opacity 650ms cubic-bezier(0.22, 1, 0.36, 1), transform 900ms cubic-bezier(0.22, 1, 0.36, 1)',
           willChange: 'opacity, transform',
+          zIndex: isMobile && settingsOpen ? 310 : undefined,
         }}>
-          <CardScene />
+          <div style={{
+            position: 'absolute', inset: 0,
+            transform: isMobile && settingsOpen ? 'translateY(-30vh) scale(0.62)' : 'translateY(0) scale(1)',
+            transformOrigin: 'center center',
+            transition: 'transform 480ms cubic-bezier(0.22, 1, 0.36, 1)',
+            pointerEvents: isMobile && settingsOpen ? 'none' : undefined,
+          }}>
+            <CardScene />
+          </div>
         </div>
       </div>
 
-      {/* Bottom action bar: Download + Preview */}
+      {/* Bottom action bar. Desktop: text pills. Mobile: icon-only circles,
+          ordered [Settings, Download, Preview] from left to right. */}
       <div style={{
         position: 'fixed',
-        bottom: 32,
+        bottom: isMobile ? 24 : 32,
         left: '50%',
         transform: 'translateX(-50%)',
         display: 'flex',
         gap: 10,
         zIndex: 100,
       }}>
+        {isMobile && (
+          <>
+            <button
+              onClick={() => setSettingsOpen(true)}
+              aria-label="Open settings"
+              title="Customize card"
+              style={{
+                width: 44, height: 44,
+                borderRadius: '50%',
+                border: '1px solid rgba(0,0,0,0.1)',
+                background: 'rgba(255,255,255,0.88)',
+                backdropFilter: 'blur(24px) saturate(160%)',
+                WebkitBackdropFilter: 'blur(24px) saturate(160%)',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)',
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'rgba(0,0,0,0.72)',
+                padding: 0,
+                transition: 'background 160ms cubic-bezier(0.22, 1, 0.36, 1), transform 160ms cubic-bezier(0.22, 1, 0.36, 1)',
+              }}
+              onTouchStart={e => (e.currentTarget.style.transform = 'scale(0.94)')}
+              onTouchEnd={e => (e.currentTarget.style.transform = 'scale(1)')}
+            >
+              <SlidersHorizontal size={20} weight="bold" />
+            </button>
+
+            <button
+              onClick={() => randomizeCard(set)}
+              aria-label="Randomize"
+              title="Randomize card"
+              style={{
+                width: 44, height: 44,
+                borderRadius: '50%',
+                border: '1px solid rgba(0,0,0,0.1)',
+                background: 'rgba(255,255,255,0.88)',
+                backdropFilter: 'blur(24px) saturate(160%)',
+                WebkitBackdropFilter: 'blur(24px) saturate(160%)',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)',
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'rgba(0,0,0,0.72)',
+                padding: 0,
+                transition: 'background 160ms cubic-bezier(0.22, 1, 0.36, 1), transform 160ms cubic-bezier(0.22, 1, 0.36, 1)',
+              }}
+              onTouchStart={e => (e.currentTarget.style.transform = 'scale(0.94)')}
+              onTouchEnd={e => (e.currentTarget.style.transform = 'scale(1)')}
+            >
+              <DiceFive size={20} weight="bold" />
+            </button>
+          </>
+        )}
+
         <button
           onClick={handleDownload}
+          title="Download card as PNG"
+          aria-label={isMobile ? 'Download' : undefined}
           style={{
             height: 44,
-            paddingLeft: 16,
-            paddingRight: 20,
-            borderRadius: 9999,
+            width: isMobile ? 44 : undefined,
+            paddingLeft: isMobile ? 0 : 16,
+            paddingRight: isMobile ? 0 : 20,
+            borderRadius: isMobile ? '50%' : 9999,
             border: '1px solid rgba(0,0,0,0.1)',
             background: 'rgba(255,255,255,0.88)',
             backdropFilter: 'blur(24px) saturate(160%)',
             WebkitBackdropFilter: 'blur(24px) saturate(160%)',
             boxShadow: '0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)',
             cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 8,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            gap: isMobile ? 0 : 8,
             fontSize: 14, fontWeight: 500,
             color: 'rgba(0,0,0,0.7)',
             fontFamily: 'inherit',
@@ -177,26 +251,29 @@ export function CardPlayground() {
           onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.88)')}
           onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
           onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
-          title="Download card as PNG"
         >
-          <svg width="15" height="15" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
+          <svg width={isMobile ? 18 : 15} height={isMobile ? 18 : 15} viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
             <path d="M9 2.25v9m0 0L5.25 7.5M9 11.25l3.75-3.75M3 14.25h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <span style={{ lineHeight: 1 }}>Download</span>
+          {!isMobile && <span style={{ lineHeight: 1 }}>Download</span>}
         </button>
 
         <button
           onClick={() => set({ previewOpen: true })}
+          title="Preview in Ramp"
+          aria-label={isMobile ? 'Preview' : undefined}
           style={{
             height: 44,
-            paddingLeft: 16,
-            paddingRight: 20,
-            borderRadius: 9999,
+            width: isMobile ? 44 : undefined,
+            paddingLeft: isMobile ? 0 : 16,
+            paddingRight: isMobile ? 0 : 20,
+            borderRadius: isMobile ? '50%' : 9999,
             border: 'none',
             background: '#18181b',
             boxShadow: '0 4px 24px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.08)',
             cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 8,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            gap: isMobile ? 0 : 8,
             fontSize: 14, fontWeight: 500,
             color: 'rgba(255,255,255,0.95)',
             fontFamily: 'inherit',
@@ -206,15 +283,16 @@ export function CardPlayground() {
           onMouseLeave={e => (e.currentTarget.style.background = '#18181b')}
           onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
           onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
-          title="Preview in Ramp"
         >
-          <svg width="15" height="15" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width={isMobile ? 18 : 15} height={isMobile ? 18 : 15} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M1 9s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6z" />
             <circle cx="9" cy="9" r="2.5" />
           </svg>
-          <span style={{ lineHeight: 1 }}>Preview</span>
+          {!isMobile && <span style={{ lineHeight: 1 }}>Preview</span>}
         </button>
       </div>
+
+      {isMobile && <MobileSettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} />}
 
       <PreviewDrawer />
       <FlipCursor />

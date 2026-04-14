@@ -386,15 +386,25 @@ export function VirtualCard() {
   const textColor = textDark ? '#1a1a1a' : '#f0f0f0'
 
   const { camera, size } = useThree()
-  const [cardPx, setCardPx] = useState({ w: CARD_W * 96, h: CARD_H * 96, perspective: 1100 })
+  const [cardPx, setCardPx] = useState({ w: CARD_W * 96, h: CARD_H * 96, perspective: 1100, fit: 1 })
   useEffect(() => {
     const cam = camera as THREE.PerspectiveCamera
     const tanHalf = Math.tan((cam.fov * Math.PI) / 180 / 2)
     const pxPerUnit = size.height / (2 * cam.position.z * tanHalf)
+    const naturalW = CARD_W * pxPerUnit
+    const naturalH = CARD_H * pxPerUnit
+    // Shrink the card so it always fits within a safe box of the viewport.
+    // Mobile needs tighter vertical budget because the bottom button bar +
+    // (potentially) the settings sheet share the screen with the card.
+    const isMobile = size.width < 768
+    const widthBudget = size.width * (isMobile ? 0.84 : 0.9)
+    const heightBudget = size.height * (isMobile ? 0.58 : 0.85)
+    const fit = Math.min(1, widthBudget / naturalW, heightBudget / naturalH)
     setCardPx({
-      w: CARD_W * pxPerUnit,
-      h: CARD_H * pxPerUnit,
+      w: naturalW * fit,
+      h: naturalH * fit,
       perspective: cam.position.z * pxPerUnit,
+      fit,
     })
   }, [camera, size.width, size.height])
 
@@ -469,6 +479,10 @@ export function VirtualCard() {
     u.uBaseColor2.value.lerp(targetColor2, s)
 
     if (groupRef.current) {
+      // Keep the 3D mesh the same visual size as the HTML overlay on narrow
+      // viewports. cardPx.fit = 1 on desktop, <1 on mobile.
+      groupRef.current.scale.setScalar(cardPx.fit)
+
       // Download mode: snap the card to a straight-on flat rotation, matching
       // whichever face was visible at the moment capture was requested. No
       // float, no tilt, no in-progress flip — clean frame for the PNG.

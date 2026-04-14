@@ -1,21 +1,28 @@
 'use client'
 import { useState } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useThree } from '@react-three/fiber'
 import { Environment, ContactShadows } from '@react-three/drei'
 import { VirtualCard } from './VirtualCard'
 import { useCardStore } from '@/store/cardStore'
 
 function ReactiveContactShadows() {
+  const { size } = useThree()
   const shadowDepth = useCardStore((s) => s.shadowDepth)
   const downloadMode = useCardStore((s) => s.downloadMode)
   const opacity = downloadMode ? 0 : shadowDepth * 0.7
+  // The card mesh is scaled to ~0.6 on mobile via VirtualCard's fit logic, so
+  // its bottom edge sits higher in world space. Bring the shadow plane up
+  // and shrink it proportionally so there's no visible gap under the card.
+  const isMobile = size.width < 768
+  const y = isMobile ? -0.88 : -1.5
+  const s = isMobile ? 0.6 : 1
   return (
     <>
       {/* Tight, dark core — stays close under the card */}
       <ContactShadows
         frames={Infinity}
-        position={[0, -1.5, 0]}
-        scale={[5.5, 3.5]}
+        position={[0, y, 0]}
+        scale={[5.5 * s, 3.5 * s]}
         blur={1.8}
         far={3}
         opacity={opacity * 0.7}
@@ -24,8 +31,8 @@ function ReactiveContactShadows() {
       {/* Wide, soft halo — simulates ambient occlusion / penumbra */}
       <ContactShadows
         frames={Infinity}
-        position={[0, -1.5, 0]}
-        scale={[9, 6]}
+        position={[0, y, 0]}
+        scale={[9 * s, 6 * s]}
         blur={6}
         far={4}
         opacity={opacity * 0.35}
