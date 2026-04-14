@@ -1,5 +1,5 @@
 'use client'
-import { useCallback, useLayoutEffect, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import html2canvas from 'html2canvas'
 import { ControlPanel } from './controls/ControlPanel'
@@ -14,10 +14,29 @@ const CardScene = dynamic(() => import('./scene/CardScene').then(m => m.CardScen
 // that caused a visible flash where the card appeared in one colorway, then
 // flashed to a different randomized one on the second mount.
 let didInit = false
+// Same idea for the intro scale+fade: strict-mode remount would otherwise
+// replay the animation and briefly snap the card back to opacity 0.
+let didPlayIntro = false
 
 export function CardPlayground() {
   const set = useCardStore(s => s.set)
   const initRef = useRef(false)
+  const [introPlayed, setIntroPlayed] = useState(didPlayIntro)
+  // Scoping DOM queries for the download handler to the main scene avoids
+  // collisions with the preview drawer, which renders its own <CardScene/>
+  // (and therefore a second <canvas> + .card-face-root when open).
+  const sceneWrapperRef = useRef<HTMLDivElement>(null)
+
+  // Kick off the intro on the next frame so the initial opacity:0 / scale:0.9
+  // layout actually paints before the transition resolves to the end state.
+  useEffect(() => {
+    if (didPlayIntro) return
+    const raf = requestAnimationFrame(() => {
+      didPlayIntro = true
+      setIntroPlayed(true)
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [])
 
   // Randomize in useLayoutEffect so the store isn't mutated mid-render (which
   // throws in React 19 when the subscriber tree reads from the store). The
@@ -30,22 +49,33 @@ export function CardPlayground() {
     randomizeCard(set)
   }, [set])
   const handleDownload = useCallback(async () => {
-    const glCanvas = document.querySelector('canvas') as HTMLCanvasElement | null
+    const wrapper = sceneWrapperRef.current
+    if (!wrapper) return
+    const glCanvas = wrapper.querySelector('canvas') as HTMLCanvasElement | null
     if (!glCanvas) return
 
     // Figure out which face is currently visible before we snap the card flat.
-    const root = document.querySelector('.card-face-root') as HTMLElement | null
+    const root = wrapper.querySelector('.card-face-root') as HTMLElement | null
     const face = root?.dataset.face === 'back' ? 'back' : 'front'
 
-    // Enter download mode — this flattens the card rotation, kills tilt/float,
-    // and hides contact shadows so the captured frame is a clean straight-on shot.
-    set({ downloadMode: true })
+    // downloadMode snaps the 3D mesh flat; captureMode additionally forces
+    // the HTML overlay's CSS transform to `none` so html2canvas sees a 2D
+    // element instead of trying (and failing) to project a 3D-rotated one.
+    set({ downloadMode: true, captureMode: true })
     // Wait a couple frames for the useFrame loop to apply the new rotation
     // and for the renderer to draw it.
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(null))))
     await new Promise((r) => setTimeout(r, 40))
 
-    const faceEl = document.querySelector(`.card-face-${face}`) as HTMLElement | null
+    const faceEl = wrapper.querySelector(`.card-face-${face}`) as HTMLElement | null
+
+    // `.card-face-back` has an inline rotateY(180) in JSX so the content
+    // reads upright when the parent root is flipped. With captureMode the
+    // parent is flat, so that rotateY(180) would now flip the content away
+    // from the camera — strip it for the snapshot, then restore.
+    const savedFaceTransform = faceEl?.style.transform
+    if (face === 'back' && faceEl) faceEl.style.transform = 'none'
+    await new Promise((r) => requestAnimationFrame(() => r(null)))
 
     // Composite: draw WebGL canvas first, then render the face content on top.
     const out = document.createElement('canvas')
@@ -55,21 +85,14 @@ export function CardPlayground() {
     ctx.drawImage(glCanvas, 0, 0)
 
     if (faceEl && root) {
-      // The back face is normally rotateY(180deg) so its 3d-flipped parent
-      // brings it forward — but html2canvas projects 2d and would capture
-      // it mirrored. Strip the transform for the snapshot, then restore.
-      const savedTransform = faceEl.style.transform
-      if (face === 'back') faceEl.style.transform = 'none'
       const overlayCanvas = await html2canvas(faceEl, {
         backgroundColor: null,
         scale: window.devicePixelRatio,
         useCORS: true,
       })
-      if (face === 'back') faceEl.style.transform = savedTransform
-      // The face element is nested inside the preserve-3d root, so its client rect
-      // reflects the CSS-3d projection. Using the root's rect instead gives us the
-      // unrotated screen-space position of the card plane, which aligns cleanly with
-      // the WebGL mesh underneath.
+      // The root is now flat (captureMode) so its client rect is the true
+      // axis-aligned card rectangle on screen — usable as the destination
+      // box for the overlay on top of the WebGL canvas.
       const glRect = glCanvas.getBoundingClientRect()
       const rootRect = root.getBoundingClientRect()
       const scaleX = glCanvas.width / glRect.width
@@ -81,13 +104,17 @@ export function CardPlayground() {
       ctx.drawImage(overlayCanvas, dx, dy, dw, dh)
     }
 
+    // Restore the back face's own rotateY(180) before leaving capture mode.
+    if (face === 'back' && faceEl && savedFaceTransform !== undefined) {
+      faceEl.style.transform = savedFaceTransform
+    }
+
     const link = document.createElement('a')
     link.download = `card-${face}.png`
     link.href = out.toDataURL('image/png')
     link.click()
 
-    // Restore interactive state
-    set({ downloadMode: false })
+    set({ downloadMode: false, captureMode: false })
   }, [set])
 
   return (
@@ -102,7 +129,19 @@ export function CardPlayground() {
           pointerEvents: 'none',
         }} />
 
-        <CardScene />
+        {/* Intro: scale up + fade in on first paint. Wraps both the canvas
+            and drei's <Html> portal (which mounts into canvas.parentNode)
+            so the 3D card and its text overlay animate in together. */}
+        <div ref={sceneWrapperRef} style={{
+          position: 'absolute', inset: 0,
+          opacity: introPlayed ? 1 : 0,
+          transform: introPlayed ? 'scale(1)' : 'scale(0.9)',
+          transformOrigin: 'center center',
+          transition: 'opacity 650ms cubic-bezier(0.22, 1, 0.36, 1), transform 900ms cubic-bezier(0.22, 1, 0.36, 1)',
+          willChange: 'opacity, transform',
+        }}>
+          <CardScene />
+        </div>
       </div>
 
       {/* Bottom action bar: Download + Preview */}

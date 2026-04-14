@@ -33,6 +33,41 @@ const TXNS: Txn[] = [
 const TOTAL = TXNS.reduce((s, t) => s + t.amount, 0) // spent-to-date
 const BUDGET = 2500
 
+interface ActivityEntry {
+  user: string
+  datetime: string
+  action: string
+  details: string
+}
+
+const ACTIVITY: ActivityEntry[] = [
+  {
+    user: 'Kallista Halim',
+    datetime: 'Feb 21, 2026, 7:32 PM',
+    action: 'Updated funds',
+    details: 'Amount: $2,500.00 · Frequency: Annual · Can spend on: All categories and all merchants.',
+  },
+  {
+    user: 'Kallista Halim',
+    datetime: 'Jan 4, 2026, 6:55 PM',
+    action: 'Updated funds',
+    details: 'Amount: $1,800.00 · Frequency: Annual · Can spend on: All categories and all merchants.',
+  },
+  {
+    user: 'Kallista Halim',
+    datetime: 'Nov 7, 2025, 2:48 PM',
+    action: 'Updated funds',
+    details: 'Amount: $1,500.00 · Frequency: Annual · Can spend on: All categories and all merchants.',
+  },
+  {
+    user: 'Kallista Halim',
+    datetime: 'Apr 5, 2025, 11:21 AM',
+    action: 'Issued funds',
+    details:
+      'Name: Software Subscriptions · Amount: $1,000.00 · Frequency: Annual · Can spend on: All categories and all merchants. · Expense Policy: Receipt Required · Accounting Rules: Quickbooks Category is set to General Admin:Software',
+  },
+]
+
 function CloseX() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
@@ -171,6 +206,8 @@ export function PreviewDrawer() {
           </div>
         </div>
 
+        {topTab === 'overview' && (
+        <>
         {/* Spending bar */}
         <div style={{ padding: '24px 40px', background: '#fafafa' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
@@ -352,8 +389,74 @@ export function PreviewDrawer() {
             ))}
           </div>
         </div>
+        </>
+        )}
+
+        {topTab === 'activity' && (
+          <div style={{ padding: '28px 40px 40px' }}>
+            {ACTIVITY.map((entry, i) => (
+              <ActivityRow key={i} entry={entry} isLast={i === ACTIVITY.length - 1} />
+            ))}
+          </div>
+        )}
       </div>
     </>
+  )
+}
+
+function ActivityRow({ entry, isLast }: { entry: ActivityEntry; isLast: boolean }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        gap: 14,
+        padding: '20px 0',
+        borderBottom: isLast ? 'none' : '1px solid rgba(0,0,0,0.06)',
+      }}
+    >
+      {/* Avatar — gray circle with silhouette */}
+      <div
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: '50%',
+          background: '#e5e5e7',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="rgba(0,0,0,0.35)"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="12" cy="9" r="3.6" />
+          <path d="M4.5 20c.8-3.4 4-5.2 7.5-5.2s6.7 1.8 7.5 5.2" />
+        </svg>
+      </div>
+
+      {/* Content */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, color: 'rgba(0,0,0,0.5)', marginBottom: 6 }}>
+          <span style={{ fontWeight: 500, color: 'rgba(0,0,0,0.78)' }}>{entry.user}</span>
+          <span style={{ margin: '0 6px', color: 'rgba(0,0,0,0.35)' }}>·</span>
+          {entry.datetime}
+        </div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.9)', marginBottom: 4 }}>
+          {entry.action}
+        </div>
+        <div style={{ fontSize: 13, color: 'rgba(0,0,0,0.62)', lineHeight: 1.5 }}>
+          {entry.details}
+        </div>
+      </div>
+    </div>
   )
 }
 

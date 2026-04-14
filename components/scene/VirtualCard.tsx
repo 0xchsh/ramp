@@ -472,7 +472,8 @@ export function VirtualCard() {
       // Download mode: snap the card to a straight-on flat rotation, matching
       // whichever face was visible at the moment capture was requested. No
       // float, no tilt, no in-progress flip — clean frame for the PNG.
-      const downloadMode = useCardStore.getState().downloadMode
+      const storeState = useCardStore.getState()
+      const downloadMode = storeState.downloadMode
       if (downloadMode) {
         const currentFlip = flipRef.current.current
         const norm = ((currentFlip % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2)
@@ -483,8 +484,16 @@ export function VirtualCard() {
         groupRef.current.position.y = 0
         groupRef.current.userData.flipCurrentApplied = flat
         if (textRef.current) {
-          const ry = flat * (180 / Math.PI)
-          textRef.current.style.transform = `perspective(${cardPx.perspective}px) rotateX(0deg) rotateY(${ry}deg)`
+          if (storeState.captureMode) {
+            // html2canvas can't project CSS 3D transforms — flatten the
+            // overlay so the snapshot sees an upright 2D element. The
+            // handler separately flips .card-face-back's own rotateY(180)
+            // so the back face content reads right-way-around.
+            textRef.current.style.transform = 'none'
+          } else {
+            const ry = flat * (180 / Math.PI)
+            textRef.current.style.transform = `perspective(${cardPx.perspective}px) rotateX(0deg) rotateY(${ry}deg)`
+          }
           textRef.current.dataset.face = isBack ? 'back' : 'front'
         }
         return

@@ -83,6 +83,10 @@ export interface CardState {
   // When true, the live 3D card snaps to a straight-on rotation with no tilt,
   // float, or contact shadow — used for clean download captures.
   downloadMode: boolean
+  // When true, the HTML card-face overlay is forced to a flat (non-3D) CSS
+  // transform so html2canvas captures an upright snapshot regardless of
+  // which face the card was flipped to. Only meaningful with downloadMode.
+  captureMode: boolean
   // Actions
   set: (patch: Partial<Omit<CardState, 'set'>>) => void
 }
@@ -110,5 +114,6 @@ export const useCardStore = create<CardState>((set) => ({
   cursorOverCard: false,
   cursorPressed: false,
   downloadMode: false,
+  captureMode: false,
   set: (patch) => set(patch),
 }))
