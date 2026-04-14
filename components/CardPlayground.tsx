@@ -1,25 +1,33 @@
 'use client'
-import { useCallback, useLayoutEffect, useState } from 'react'
+import { useCallback, useLayoutEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import html2canvas from 'html2canvas'
 import { ControlPanel } from './controls/ControlPanel'
 import { PreviewDrawer } from './preview/PreviewDrawer'
+import { FlipCursor } from './FlipCursor'
 import { useCardStore } from '@/store/cardStore'
 import { randomizeCard } from '@/lib/randomize'
 
 const CardScene = dynamic(() => import('./scene/CardScene').then(m => m.CardScene), { ssr: false })
 
+// Module-level so React strict-mode double-mount (and HMR) don't re-randomize —
+// that caused a visible flash where the card appeared in one colorway, then
+// flashed to a different randomized one on the second mount.
+let didInit = false
+
 export function CardPlayground() {
   const set = useCardStore(s => s.set)
-  const [ready, setReady] = useState(false)
+  const initRef = useRef(false)
 
-  // Randomize before the card ever paints so visitors never see the default
-  // state briefly flash through. useLayoutEffect runs synchronously before
-  // the browser commits the first frame of the canvas, so the shader mounts
-  // with the final values already in the store.
+  // Randomize in useLayoutEffect so the store isn't mutated mid-render (which
+  // throws in React 19 when the subscriber tree reads from the store). The
+  // ref + module flag together ensure strict mode's double-invoke can't
+  // randomize twice.
   useLayoutEffect(() => {
+    if (initRef.current || didInit) return
+    initRef.current = true
+    didInit = true
     randomizeCard(set)
-    setReady(true)
   }, [set])
   const handleDownload = useCallback(async () => {
     const glCanvas = document.querySelector('canvas') as HTMLCanvasElement | null
@@ -94,11 +102,7 @@ export function CardPlayground() {
           pointerEvents: 'none',
         }} />
 
-        {ready && (
-          <div className="animate-canvas-fade">
-            <CardScene />
-          </div>
-        )}
+        <CardScene />
       </div>
 
       {/* Bottom action bar: Download + Preview */}
@@ -174,6 +178,7 @@ export function CardPlayground() {
       </div>
 
       <PreviewDrawer />
+      <FlipCursor />
     </div>
   )
 }

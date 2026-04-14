@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
+import NumberFlow from '@number-flow/react'
 import { useCardStore } from '@/store/cardStore'
 
 const CardScene = dynamic(() => import('@/components/scene/CardScene').then(m => m.CardScene), { ssr: false })
@@ -60,6 +61,7 @@ export function PreviewDrawer() {
   const drawerRef = useRef<HTMLDivElement>(null)
   const [topTab, setTopTab] = useState<'overview' | 'activity'>('overview')
   const [issuedOpen, setIssuedOpen] = useState(true)
+  const [animated, setAnimated] = useState(false)
 
   // Escape key
   useEffect(() => {
@@ -75,6 +77,33 @@ export function PreviewDrawer() {
   const spent = TOTAL
   const remaining = Math.max(0, BUDGET - spent)
   const spentPct = Math.min(100, (spent / BUDGET) * 100)
+
+  // Flip `animated` to true ~220ms after the drawer starts sliding in so
+  // NumberFlow and the bar fill in sync with the drawer settling. Reset after
+  // slide-out completes so re-opening re-triggers the count-up. Two rAFs
+  // instead of a synchronous setState keep us out of the cascading-render
+  // lint rule while still priming the value at 0 before the timer flips it.
+  useEffect(() => {
+    if (!previewOpen) {
+      const t = setTimeout(() => setAnimated(false), 500)
+      return () => clearTimeout(t)
+    }
+    let raf1 = 0
+    let raf2 = 0
+    raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => setAnimated(false))
+    })
+    const t = setTimeout(() => setAnimated(true), 220)
+    return () => {
+      cancelAnimationFrame(raf1)
+      cancelAnimationFrame(raf2)
+      clearTimeout(t)
+    }
+  }, [previewOpen])
+
+  const shownSpent = animated ? spent : 0
+  const shownRemaining = animated ? remaining : BUDGET
+  const shownPct = animated ? spentPct : 0
 
   return (
     <>
@@ -145,21 +174,35 @@ export function PreviewDrawer() {
         {/* Spending bar */}
         <div style={{ padding: '24px 40px', background: '#fafafa' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-            <div>
-              <span style={{ fontSize: 26, fontWeight: 500, letterSpacing: '-0.01em' }}>{formatMoney(spent)}</span>
+            <div style={{ display: 'flex', alignItems: 'baseline' }}>
+              <NumberFlow
+                value={shownSpent}
+                format={{ style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }}
+                transformTiming={{ duration: 1500, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }}
+                spinTiming={{ duration: 1500, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }}
+                opacityTiming={{ duration: 400, easing: 'ease-out' }}
+                style={{ fontSize: 26, fontWeight: 500, letterSpacing: '-0.01em' }}
+              />
               <span style={{ fontSize: 13, color: 'rgba(0,0,0,0.5)', marginLeft: 8 }}>spent</span>
             </div>
-            <div>
-              <span style={{ fontSize: 26, fontWeight: 500, letterSpacing: '-0.01em' }}>{formatMoney(remaining)}</span>
+            <div style={{ display: 'flex', alignItems: 'baseline' }}>
+              <NumberFlow
+                value={shownRemaining}
+                format={{ style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }}
+                transformTiming={{ duration: 1500, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }}
+                spinTiming={{ duration: 1500, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }}
+                opacityTiming={{ duration: 400, easing: 'ease-out' }}
+                style={{ fontSize: 26, fontWeight: 500, letterSpacing: '-0.01em' }}
+              />
               <span style={{ fontSize: 13, color: 'rgba(0,0,0,0.5)', marginLeft: 8 }}>left</span>
             </div>
           </div>
           <div style={{ marginTop: 12, height: 10, borderRadius: 2, background: 'rgba(0,0,0,0.08)', overflow: 'hidden' }}>
             <div style={{
-              width: `${spentPct}%`, height: '100%',
+              width: `${shownPct}%`, height: '100%',
               background: 'linear-gradient(90deg, #2563eb 0%, #1e40af 100%)',
               borderRadius: 2,
-              transition: 'width 400ms cubic-bezier(0.22, 1, 0.36, 1)',
+              transition: 'width 1500ms cubic-bezier(0.22, 1, 0.36, 1)',
             }} />
           </div>
           <div style={{ marginTop: 8, fontSize: 12, color: 'rgba(0,0,0,0.5)', textAlign: 'right' }}>
@@ -247,7 +290,7 @@ export function PreviewDrawer() {
             padding: '14px 18px',
           }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.85)', marginBottom: 6 }}>Card transactions</div>
-            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: 'rgba(0,0,0,0.65)' }}>
+            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: 'rgba(0,0,0,0.65)', listStyle: 'disc' }}>
               <li>Receipt is required above $75.00</li>
               <li>Memo is always required</li>
               <li>Auto-categorized as Software</li>

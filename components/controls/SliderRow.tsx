@@ -9,24 +9,19 @@ interface SliderRowProps {
 }
 
 export function SliderRow({ label, value, onChange, accentColor = 'rgba(0, 0, 0, 0.08)' }: SliderRowProps) {
-  // Drag handler uses window-level listeners so the slider keeps receiving
-  // events even when the cursor leaves the element, the panel, or the browser
-  // window entirely. The current value is tracked in a local closure variable
-  // instead of reading the React prop on every move, so fast drags aren't
-  // throttled by React render batching.
+  // Absolute-position slider: click anywhere to snap to that value, drag to
+  // continue scrubbing. Window-level listeners keep the slider responsive even
+  // when the cursor leaves the track, panel, or browser window.
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
       e.preventDefault()
-      let lastX = e.clientX
-      let current = value
+      const rect = e.currentTarget.getBoundingClientRect()
+      const compute = (clientX: number) =>
+        Math.min(1, Math.max(0, (clientX - rect.left) / rect.width))
 
-      const handleMove = (ev: PointerEvent) => {
-        const dx = ev.clientX - lastX
-        lastX = ev.clientX
-        current = Math.min(1, Math.max(0, current + dx * 0.006))
-        onChange(current)
-      }
+      onChange(compute(e.clientX))
 
+      const handleMove = (ev: PointerEvent) => onChange(compute(ev.clientX))
       const handleUp = () => {
         window.removeEventListener('pointermove', handleMove)
         window.removeEventListener('pointerup', handleUp)
@@ -37,7 +32,7 @@ export function SliderRow({ label, value, onChange, accentColor = 'rgba(0, 0, 0,
       window.addEventListener('pointerup', handleUp)
       window.addEventListener('pointercancel', handleUp)
     },
-    [value, onChange],
+    [onChange],
   )
 
   return (

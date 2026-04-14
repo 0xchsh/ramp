@@ -1,10 +1,10 @@
 'use client'
 import { useRef, useMemo, useState, useEffect } from 'react'
-import { useFrame, useThree } from '@react-three/fiber'
+import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import * as THREE from 'three'
 import { createRoundedRectGeometry } from '@/lib/roundedRect'
-import { useCardStore, HOLO_PATTERNS, MATERIAL_IDS } from '@/store/cardStore'
+import { useCardStore, HOLO_PATTERN_KIND, MATERIAL_IDS } from '@/store/cardStore'
 import { useMouseParallax } from '@/hooks/useMouseParallax'
 import { AnimatedSignature } from './AnimatedSignature'
 import { RampLogo } from '../RampLogo'
@@ -117,13 +117,6 @@ void holoLookup(int kind, vec2 uv, float t, out float ang, out float modv) {
     float grid = smoothstep(0.2, 0.9, max(gx, gy));
     ang = (gx - gy) * 0.6;
     modv = 0.3 + 0.7 * grid;
-  } else if (kind == 3) {
-    // Radial rings
-    vec2 c = uv - 0.5;
-    float d = length(c);
-    float r = sin(d * 28.0 - t * 1.2) * 0.5 + 0.5;
-    ang = d * 2.0 + t * 0.1;
-    modv = 0.3 + 0.7 * r;
   } else if (kind == 4) {
     // Starburst — angular rays from the center
     vec2 c = uv - 0.5;
@@ -152,9 +145,9 @@ void holoLookup(int kind, vec2 uv, float t, out float ang, out float modv) {
     float d = length(df);
     float phase = fract(sin(id.x * 12.9898 + id.y * 78.233) * 43758.5453);
     float pulse = 0.25 + 0.2 * sin(t * 2.0 + phase * 6.2832);
-    float dot = smoothstep(pulse + 0.08, pulse - 0.02, d);
+    float cellDot = smoothstep(pulse + 0.08, pulse - 0.02, d);
     ang = (phase - 0.5) * 0.8;
-    modv = 0.3 + 0.7 * dot;
+    modv = 0.3 + 0.7 * cellDot;
   } else if (kind == 8) {
     // Hex — hexagonal tile centers via skewed grid
     vec2 hUv = uv * vec2(8.0, 9.2);
@@ -179,6 +172,70 @@ void holoLookup(int kind, vec2 uv, float t, out float ang, out float modv) {
     float roll = sin(uv.y * 6.0 - t * 0.5) * 0.5 + 0.5;
     ang = scan * 0.7 - 0.35;
     modv = 0.25 + 0.7 * scan * (0.65 + roll * 0.35);
+  } else if (kind == 11) {
+    // Checker — classic checkerboard that gently drifts and fades between tiles
+    vec2 c = uv * vec2(12.0, 8.0) + vec2(t * 0.12, t * 0.08);
+    float check = mod(floor(c.x) + floor(c.y), 2.0);
+    float soft = sin(t * 0.6 + floor(c.x) * 0.3 + floor(c.y) * 0.5) * 0.5 + 0.5;
+    ang = (check - 0.5) * 0.9;
+    modv = 0.25 + 0.7 * mix(check, soft, 0.35);
+  } else if (kind == 14) {
+    // Chevron — V-shaped zigzag stripes, drifting along x
+    float zig = abs(fract(uv.y * 10.0 + t * 0.3) - 0.5) * 2.0;
+    float band = sin((uv.x + zig * 0.25) * 16.0 - t * 0.7) * 0.5 + 0.5;
+    ang = band * 0.9 - 0.45;
+    modv = 0.3 + 0.7 * band;
+  } else if (kind == 16) {
+    // Mesh — triangular tri-grid via three shifted sine fields
+    vec2 m = uv * 10.0 + vec2(t * 0.2, t * 0.15);
+    float m1 = abs(sin(m.x));
+    float m2 = abs(sin(m.y));
+    float m3 = abs(sin(m.x + m.y));
+    float mesh = smoothstep(0.2, 0.85, max(max(m1, m2), m3));
+    ang = (m1 - m3) * 0.5;
+    modv = 0.28 + 0.7 * mesh;
+  } else if (kind == 17) {
+    // Glitch — corrupted horizontal bands that flicker and shear
+    float stripH = 16.0;
+    float band = floor(uv.y * stripH);
+    float bandTime = floor(t * 4.5);
+    float bandRand = hash21(vec2(band, bandTime));
+    // 'bandOn' (not 'active') because 'active' is reserved in GLSL ES 3.00
+    float bandOn = step(0.72, bandRand);
+    float shear = (hash21(vec2(band, bandTime + 1.0)) - 0.5) * 0.35 * bandOn;
+    float bars = fract((uv.x + shear) * 28.0 + bandRand * 12.0);
+    float bar = step(0.5, bars);
+    ang = (bar - 0.5) * 1.4 + bandOn * 0.5;
+    modv = 0.22 + 0.75 * bar * (1.0 - bandOn * 0.25) + bandOn * 0.15;
+  } else if (kind == 18) {
+    // Topo — elevation contour lines from layered simplex noise
+    float e1 = snoise(uv * 3.0 + t * 0.08);
+    float e2 = snoise(uv * 6.5 - t * 0.06) * 0.35;
+    float elev = (e1 + e2) * 0.5 + 0.5;
+    float contour = abs(fract(elev * 8.0) - 0.5) * 2.0;
+    float lines = smoothstep(0.8, 0.97, 1.0 - contour);
+    ang = elev * 1.4 - 0.7;
+    modv = 0.18 + 0.8 * lines;
+  } else if (kind == 19) {
+    // Crosshatch — two groups of ±45° diagonal lines, hand-drawn feel
+    float h1 = abs(fract((uv.x + uv.y) * 22.0 + t * 0.25) - 0.5);
+    float h2 = abs(fract((uv.x - uv.y) * 20.0 - t * 0.2) - 0.5);
+    float line1 = smoothstep(0.42, 0.48, h1);
+    float line2 = smoothstep(0.42, 0.48, h2);
+    float hatch = max(line1, line2);
+    ang = (line1 - line2) * 1.1;
+    modv = 0.18 + 0.8 * hatch;
+  } else if (kind == 20) {
+    // Halftone — print dot pattern with cell sizes modulated by noise
+    vec2 cell = uv * 20.0 + vec2(t * 0.15, t * 0.1);
+    vec2 id = floor(cell);
+    vec2 df = fract(cell) - 0.5;
+    float d = length(df);
+    float modulate = snoise(id * 0.18 + t * 0.3) * 0.5 + 0.5;
+    float dotSize = 0.12 + modulate * 0.32;
+    float halfDot = smoothstep(dotSize + 0.04, dotSize - 0.04, d);
+    ang = modulate - 0.5;
+    modv = 0.2 + 0.78 * halfDot;
   } else {
     // Blotch (default) — simplex-noise blobs
     float n = snoise(uv * 3.0 + t * 0.15) * 0.5 + 0.5;
@@ -232,13 +289,13 @@ void main() {
     float streak = snoise(vec2(vUv.x * 140.0, vUv.y * 1.5)) * 0.5 + 0.5;
 
     // Chrome shading: dim base, bright reflections, fresnel edges
-    vec3 tint = mix(vec3(1.0), normalize(base + vec3(0.001)), 0.25);
-    vec3 metal = base * 0.22
-               + tint * (0.4 + nDotV * 0.35)
-               + spec * 2.4
-               + broadSpec * 0.5
-               + aniso * 1.4 * (0.65 + streak * 0.35)
-               + pow(1.0 - nDotV, 1.3) * 0.9;
+    vec3 tint = mix(vec3(1.0), normalize(base + vec3(0.001)), 0.4);
+    vec3 metal = base * 0.32
+               + tint * (0.28 + nDotV * 0.26)
+               + spec * 2.2
+               + broadSpec * 0.42
+               + aniso * 1.15 * (0.65 + streak * 0.35)
+               + pow(1.0 - nDotV, 1.3) * 0.7;
     base = metal;
   } else if (uMaterial == 2) {
     // Glass — clean colored-glass rendering. No noise. Deep saturated center,
@@ -353,8 +410,8 @@ export function VirtualCard() {
         uTime:           { value: 0 },
         uBaseColor:      { value: new THREE.Color(s.baseColor) },
         uBaseColor2:     { value: new THREE.Color(s.baseColor2) },
-        uHoloIntensity:  { value: s.holoIntensity },
-        uHoloPattern:    { value: HOLO_PATTERNS.indexOf(s.holoPattern) },
+        uHoloIntensity:  { value: s.holoPattern === 'none' ? 0 : s.holoIntensity },
+        uHoloPattern:    { value: HOLO_PATTERN_KIND[s.holoPattern] },
         uHoloSpeed:      { value: s.holoSpeed },
         uHoloScale:      { value: s.holoScale },
         uHoloVariance:   { value: s.holoVariance },
@@ -377,7 +434,7 @@ export function VirtualCard() {
   // We delay the bump so the existing signature stays fully drawn while the back face is
   // still partially visible during the first half of the flip.
   const [flipVersion, setFlipVersion] = useState(0)
-  const handleFlip = (e: any) => {
+  const handleFlip = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation()
     const f = flipRef.current
     f.from = f.current
@@ -396,8 +453,9 @@ export function VirtualCard() {
     const s = 0.06
     const u = shaderMaterial.uniforms
     u.uTime.value = t
-    u.uHoloIntensity.value  += (holoIntensity  - u.uHoloIntensity.value)  * s
-    u.uHoloPattern.value = HOLO_PATTERNS.indexOf(holoPattern)
+    const effectiveIntensity = holoPattern === 'none' ? 0 : holoIntensity
+    u.uHoloIntensity.value  += (effectiveIntensity - u.uHoloIntensity.value)  * s
+    u.uHoloPattern.value = HOLO_PATTERN_KIND[holoPattern]
     u.uHoloSpeed.value     += (holoSpeed    - u.uHoloSpeed.value)     * s
     u.uHoloScale.value     += (holoScale    - u.uHoloScale.value)     * s
     u.uHoloVariance.value  += (holoVariance - u.uHoloVariance.value)  * s
@@ -484,8 +542,16 @@ export function VirtualCard() {
         geometry={geometry}
         material={shaderMaterial}
         onClick={handleFlip}
-        onPointerOver={() => { document.body.style.cursor = 'pointer' }}
-        onPointerOut={() => { document.body.style.cursor = '' }}
+        onPointerOver={() => {
+          document.body.style.cursor = 'none'
+          useCardStore.getState().set({ cursorOverCard: true })
+        }}
+        onPointerOut={() => {
+          document.body.style.cursor = ''
+          useCardStore.getState().set({ cursorOverCard: false, cursorPressed: false })
+        }}
+        onPointerDown={() => useCardStore.getState().set({ cursorPressed: true })}
+        onPointerUp={() => useCardStore.getState().set({ cursorPressed: false })}
       />
 
       <Html
@@ -586,7 +652,7 @@ export function VirtualCard() {
                   height={34}
                   fontSize={20}
                   delaySeconds={0.1}
-                  durationSeconds={3.0}
+                  durationSeconds={1.0}
                 />
               </div>
               {/* CVV */}

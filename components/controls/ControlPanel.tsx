@@ -1,7 +1,6 @@
 'use client'
 import { SliderRow } from './SliderRow'
 import { MaterialPicker } from './MaterialPicker'
-import { ShaderPresetPicker } from './ShaderPresetPicker'
 import { ColorSwatches } from './ColorSwatches'
 import { useCardStore, HOLO_PATTERNS } from '@/store/cardStore'
 import { randomizeCard } from '@/lib/randomize'
@@ -148,12 +147,6 @@ export function ControlPanel() {
       <SectionTitle title="Color" />
       <div style={{ padding: '0 14px 10px' }}>
         <ColorSwatches />
-      </div>
-
-      {/* Presets — whole-card shader shortcuts */}
-      <SectionTitle title="Presets" />
-      <div style={{ padding: '0 14px 8px' }}>
-        <ShaderPresetPicker />
       </div>
 
       {/* Patterns — just the picker; tuning lives in Settings below */}
