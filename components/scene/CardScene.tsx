@@ -1,21 +1,33 @@
 'use client'
-import { useState } from 'react'
-import { Canvas, useThree } from '@react-three/fiber'
+import { useRef, useState } from 'react'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Environment, ContactShadows } from '@react-three/drei'
 import { VirtualCard } from './VirtualCard'
 import { useCardStore } from '@/store/cardStore'
+
+// Fires onReady on the first rendered frame. Because useFrame only ticks after
+// all Suspense children (Environment HDR, textures) have resolved, this is the
+// earliest moment the card is actually visible to the user.
+function ReadySignal({ onReady }: { onReady: () => void }) {
+  const fired = useRef(false)
+  useFrame(() => {
+    if (fired.current) return
+    fired.current = true
+    onReady()
+  })
+  return null
+}
 
 function ReactiveContactShadows() {
   const { size } = useThree()
   const shadowDepth = useCardStore((s) => s.shadowDepth)
   const downloadMode = useCardStore((s) => s.downloadMode)
+  // Mobile hides the shadow entirely — the floating card reads cleaner on
+  // small screens where the contact plane felt overcommitted.
+  if (size.width < 768) return null
   const opacity = downloadMode ? 0 : shadowDepth * 0.7
-  // The card mesh is scaled to ~0.6 on mobile via VirtualCard's fit logic, so
-  // its bottom edge sits higher in world space. Bring the shadow plane up
-  // and shrink it proportionally so there's no visible gap under the card.
-  const isMobile = size.width < 768
-  const y = isMobile ? -0.88 : -1.5
-  const s = isMobile ? 0.6 : 1
+  const y = -1.5
+  const s = 1
   return (
     <>
       {/* Tight, dark core — stays close under the card */}
@@ -42,7 +54,15 @@ function ReactiveContactShadows() {
   )
 }
 
-export function CardScene({ cameraZ = 8.8, noShadow = false }: { cameraZ?: number; noShadow?: boolean }) {
+export function CardScene({
+  cameraZ = 8.8,
+  noShadow = false,
+  onReady,
+}: {
+  cameraZ?: number
+  noShadow?: boolean
+  onReady?: () => void
+}) {
   const [canvasKey, setCanvasKey] = useState(0)
 
   return (
@@ -67,6 +87,7 @@ export function CardScene({ cameraZ = 8.8, noShadow = false }: { cameraZ?: numbe
       <VirtualCard />
       {!noShadow && <ReactiveContactShadows />}
       <Environment preset="city" />
+      {onReady && <ReadySignal onReady={onReady} />}
     </Canvas>
   )
 }

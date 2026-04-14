@@ -30,7 +30,7 @@ function HoloPatternPicker() {
               className="pill-button"
               data-active={active}
               style={{
-                height: 26, borderRadius: 5, padding: '0 6px',
+                height: 34, borderRadius: 6, padding: '0 8px',
                 border: 'none',
                 background: active ? '#18181b' : 'rgba(0,0,0,0.04)',
                 cursor: 'pointer',
@@ -49,7 +49,7 @@ function HoloPatternPicker() {
   )
 }
 
-export function ControlPanelBody({ showHeader = true }: { showHeader?: boolean }) {
+export function ControlPanelBody({ showHeader = true, showScene = true }: { showHeader?: boolean; showScene?: boolean }) {
   const store = useCardStore()
   return (
     <>
@@ -138,9 +138,13 @@ export function ControlPanelBody({ showHeader = true }: { showHeader?: boolean }
       <SliderRow label="Variance" value={store.holoVariance} onChange={v => store.set({ holoVariance: v })} />
       <SliderRow label="Rotation" value={store.holoRotation} onChange={v => store.set({ holoRotation: v })} />
 
-      {/* Scene */}
-      <SectionTitle title="Scene" />
-      <SliderRow label="Shadow" value={store.shadowDepth} onChange={v => store.set({ shadowDepth: v })} />
+      {/* Scene — hidden on mobile where the shadow is omitted entirely */}
+      {showScene && (
+        <>
+          <SectionTitle title="Scene" />
+          <SliderRow label="Shadow" value={store.shadowDepth} onChange={v => store.set({ shadowDepth: v })} />
+        </>
+      )}
       <div style={{ height: 16 }} />
     </>
   )

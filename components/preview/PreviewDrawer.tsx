@@ -173,6 +173,8 @@ export function PreviewDrawer() {
           transform: previewOpen ? 'translateX(0)' : 'translateX(100%)',
           transition: 'transform 460ms cubic-bezier(0.22, 1, 0.36, 1)',
           overflowY: 'auto',
+          overflowX: 'hidden',
+          overscrollBehavior: 'contain',
           zIndex: 201,
           fontFamily: 'Inter, -apple-system, sans-serif',
           color: 'rgba(0,0,0,0.85)',

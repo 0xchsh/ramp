@@ -9,7 +9,7 @@ interface MobileSettingsSheetProps {
 
 export function MobileSettingsSheet({ open, onOpenChange }: MobileSettingsSheetProps) {
   return (
-    <Drawer.Root open={open} onOpenChange={onOpenChange} snapPoints={[0.6]} dismissible>
+    <Drawer.Root open={open} onOpenChange={onOpenChange} snapPoints={[0.6, 0.96]} dismissible>
       <Drawer.Portal>
         {/* Transparent overlay — we skip the dim/blur so the card stays
             visible above the sheet, but keep the element in place so vaul's
@@ -32,7 +32,7 @@ export function MobileSettingsSheet({ open, onOpenChange }: MobileSettingsSheetP
             display: 'flex', flexDirection: 'column',
             outline: 'none',
             zIndex: 320,
-            maxHeight: '96vh',
+            maxHeight: '96dvh',
             fontFamily: 'Inter, -apple-system, sans-serif',
           }}
         >
@@ -79,12 +79,15 @@ export function MobileSettingsSheet({ open, onOpenChange }: MobileSettingsSheetP
           <div
             style={{
               flex: 1,
+              minWidth: 0,
               overflowY: 'auto',
+              overflowX: 'hidden',
+              overscrollBehavior: 'contain',
               WebkitOverflowScrolling: 'touch',
               paddingBottom: 'calc(96px + env(safe-area-inset-bottom, 0px))',
             }}
           >
-            <ControlPanelBody showHeader={false} />
+            <ControlPanelBody showHeader={false} showScene={false} />
           </div>
         </Drawer.Content>
       </Drawer.Portal>

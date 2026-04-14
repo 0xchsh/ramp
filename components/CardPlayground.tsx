@@ -1,5 +1,5 @@
 'use client'
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import html2canvas from 'html2canvas'
 import { SlidersHorizontal, DiceFive } from '@phosphor-icons/react'
@@ -32,15 +32,14 @@ export function CardPlayground() {
   // (and therefore a second <canvas> + .card-face-root when open).
   const sceneWrapperRef = useRef<HTMLDivElement>(null)
 
-  // Kick off the intro on the next frame so the initial opacity:0 / scale:0.9
-  // layout actually paints before the transition resolves to the end state.
-  useEffect(() => {
+  // CardScene calls this on its first rendered frame, which is the earliest
+  // moment the card is actually visible (after Environment HDR + shaders load).
+  // Gating the intro on that signal means the fade+scale always wraps a real
+  // card, never an empty canvas.
+  const handleSceneReady = useCallback(() => {
     if (didPlayIntro) return
-    const raf = requestAnimationFrame(() => {
-      didPlayIntro = true
-      setIntroPlayed(true)
-    })
-    return () => cancelAnimationFrame(raf)
+    didPlayIntro = true
+    setIntroPlayed(true)
   }, [])
 
   // Randomize in useLayoutEffect so the store isn't mutated mid-render (which
@@ -123,7 +122,7 @@ export function CardPlayground() {
   }, [set])
 
   return (
-    <div style={{ width: '100vw', height: '100vh', minHeight: 400, position: 'relative', background: '#f5f5f5', overflow: 'hidden' }}>
+    <div style={{ width: '100vw', height: '100svh', minHeight: 400, position: 'relative', background: '#f5f5f5', overflow: 'hidden' }}>
       {!isMobile && <ControlPanel />}
 
       <div style={{ position: 'absolute', inset: 0 }}>
@@ -151,12 +150,16 @@ export function CardPlayground() {
         }}>
           <div style={{
             position: 'absolute', inset: 0,
-            transform: isMobile && settingsOpen ? 'translateY(-30vh) scale(0.62)' : 'translateY(0) scale(1)',
+            transform: isMobile && settingsOpen
+              ? 'translateY(-30svh) scale(0.62)'
+              : isMobile
+                ? 'translateY(-4svh) scale(1)'
+                : 'translateY(0) scale(1)',
             transformOrigin: 'center center',
             transition: 'transform 480ms cubic-bezier(0.22, 1, 0.36, 1)',
             pointerEvents: isMobile && settingsOpen ? 'none' : undefined,
           }}>
-            <CardScene />
+            <CardScene onReady={handleSceneReady} />
           </div>
         </div>
       </div>
