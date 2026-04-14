@@ -9,7 +9,7 @@ interface MobileSettingsSheetProps {
 
 export function MobileSettingsSheet({ open, onOpenChange }: MobileSettingsSheetProps) {
   return (
-    <Drawer.Root open={open} onOpenChange={onOpenChange} snapPoints={[0.6, 0.96]} dismissible>
+    <Drawer.Root open={open} onOpenChange={onOpenChange} snapPoints={[0.6, 0.96]} dismissible noBodyStyles>
       <Drawer.Portal>
         {/* Transparent overlay — we skip the dim/blur so the card stays
             visible above the sheet, but keep the element in place so vaul's
@@ -77,13 +77,13 @@ export function MobileSettingsSheet({ open, onOpenChange }: MobileSettingsSheetP
               last slider clears the home indicator and the sheet's rubber-band
               bottom feels intentional rather than clipped. */}
           <div
+            className="sheet-scroll"
             style={{
               flex: 1,
               minWidth: 0,
-              overflowY: 'auto',
+              overflowY: 'scroll',
               overflowX: 'hidden',
               overscrollBehavior: 'contain',
-              WebkitOverflowScrolling: 'touch',
               paddingBottom: 'calc(96px + env(safe-area-inset-bottom, 0px))',
             }}
           >

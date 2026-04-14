@@ -1,4 +1,4 @@
-import { HOLO_PATTERNS, MATERIAL_IDS, type CardState, type HoloPattern } from '@/store/cardStore'
+import { HOLO_PATTERNS, MATERIAL_IDS, SIGNATURE_FONTS, type CardState, type HoloPattern } from '@/store/cardStore'
 import { COLORS } from './colors'
 
 type SetFn = (patch: Partial<Omit<CardState, 'set'>>) => void
@@ -21,6 +21,7 @@ export function randomizeCard(set: SetFn) {
     baseColor: color.base,
     baseColor2: color.base2,
     material: pick(MATERIAL_IDS),
+    signatureFont: pick(SIGNATURE_FONTS).id,
     holoPattern: pick(REAL_PATTERNS),
     holoIntensity: 0.2 + Math.random() * 0.65,
     holoSpeed: 0.25 + Math.random() * 0.6,

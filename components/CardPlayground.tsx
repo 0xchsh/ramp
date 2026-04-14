@@ -139,7 +139,7 @@ export function CardPlayground() {
   }, [set])
 
   return (
-    <div style={{ width: '100vw', height: '100svh', minHeight: 400, position: 'relative', background: '#f5f5f5', overflow: 'hidden' }}>
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '100svh', minHeight: 400, background: '#f5f5f5', overflow: 'hidden' }}>
       {!isMobile && <ControlPanel />}
 
       <div style={{ position: 'absolute', inset: 0 }}>

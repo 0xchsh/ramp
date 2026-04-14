@@ -56,6 +56,15 @@ canvas {
   display: none;
 }
 
+/* Mobile sheet scroll — hide scrollbar so it doesn't eat into content width */
+.sheet-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.sheet-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 .animate-fade-up {
   animation: fade-up 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
 }

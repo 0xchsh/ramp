@@ -1,10 +1,10 @@
 'use client'
-import { useRef, useMemo, useState } from 'react'
+import { useRef, useMemo, useState, useEffect } from 'react'
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import * as THREE from 'three'
 import { createRoundedRectGeometry } from '@/lib/roundedRect'
-import { useCardStore, HOLO_PATTERN_KIND, MATERIAL_IDS } from '@/store/cardStore'
+import { useCardStore, HOLO_PATTERN_KIND, MATERIAL_IDS, SIGNATURE_FONTS } from '@/store/cardStore'
 import { useMouseParallax } from '@/hooks/useMouseParallax'
 import { AnimatedSignature } from './AnimatedSignature'
 import { RampLogo } from '../RampLogo'
@@ -451,6 +451,17 @@ export function VirtualCard() {
   // We delay the bump so the existing signature stays fully drawn while the back face is
   // still partially visible during the first half of the flip.
   const [flipVersion, setFlipVersion] = useState(0)
+  const [fontVersion, setFontVersion] = useState(0)
+  const signatureFont = useCardStore(s => s.signatureFont)
+  const fontDef = SIGNATURE_FONTS.find(f => f.id === signatureFont) ?? SIGNATURE_FONTS[0]
+  const prevFontRef = useRef(signatureFont)
+  useEffect(() => {
+    if (prevFontRef.current !== signatureFont) {
+      prevFontRef.current = signatureFont
+      setFontVersion(v => v + 1)
+    }
+  }, [signatureFont])
+
   const handleFlip = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation()
     const f = flipRef.current
@@ -678,7 +689,8 @@ export function VirtualCard() {
               }}>
                 <AnimatedSignature
                   text={cardName || 'Charles Shin'}
-                  replayKey={flipVersion}
+                  replayKey={flipVersion + fontVersion * 1000}
+                  fontPath={fontDef.file}
                   height={34}
                   fontSize={20}
                   delaySeconds={0.1}

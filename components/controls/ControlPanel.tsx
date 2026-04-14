@@ -2,8 +2,12 @@
 import { SliderRow } from './SliderRow'
 import { MaterialPicker } from './MaterialPicker'
 import { ColorSwatches } from './ColorSwatches'
-import { useCardStore, HOLO_PATTERNS } from '@/store/cardStore'
+import { useCardStore, HOLO_PATTERNS, SIGNATURE_FONTS } from '@/store/cardStore'
 import { randomizeCard } from '@/lib/randomize'
+
+const sigFontFaceCSS = SIGNATURE_FONTS.map(f =>
+  `@font-face{font-family:'${f.cssFamily}';src:url('${f.file}') format('truetype');font-display:block;}`
+).join('')
 
 function SectionTitle({ title }: { title: string }) {
   return (
@@ -15,6 +19,44 @@ function SectionTitle({ title }: { title: string }) {
   )
 }
 
+
+function SignatureFontPicker() {
+  const { signatureFont, set } = useCardStore()
+  return (
+    <div style={{ padding: '0 14px 4px' }}>
+      <style dangerouslySetInnerHTML={{ __html: sigFontFaceCSS }} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 4 }}>
+        {SIGNATURE_FONTS.map(f => {
+          const active = signatureFont === f.id
+          return (
+            <button
+              key={f.id}
+              onClick={() => set({ signatureFont: f.id })}
+              className="pill-button"
+              data-active={active}
+              style={{
+                height: 40, borderRadius: 6, padding: '0 8px',
+                border: 'none',
+                background: active ? '#18181b' : 'rgba(0,0,0,0.04)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <span style={{
+                fontFamily: `'${f.cssFamily}', cursive`,
+                fontSize: 17,
+                color: active ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.75)',
+              }}>
+                Aa
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 function HoloPatternPicker() {
   const { holoPattern, set } = useCardStore()
@@ -119,6 +161,10 @@ export function ControlPanelBody({ showHeader = true, showScene = true }: { show
       <div style={{ padding: '0 14px 10px' }}>
         <MaterialPicker />
       </div>
+
+      {/* Signature — font used for the animated signature on the card back */}
+      <SectionTitle title="Signature" />
+      <SignatureFontPicker />
 
       {/* Color — curated pure-color swatches */}
       <SectionTitle title="Color" />

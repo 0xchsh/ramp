@@ -75,6 +75,14 @@ export function CardScene({
       dpr={[1, 2]}
       flat
       gl={{ antialias: true, preserveDrawingBuffer: true }}
+      // react-use-measure (used internally by R3F Canvas) has scroll:true by default,
+      // which adds a window scroll listener that calls getBoundingClientRect().
+      // On mobile, when the settings sheet is open the card wrapper has scale(0.62)
+      // applied; getBoundingClientRect() returns scaled dimensions, causing R3F to
+      // report a shrunken canvas size and three/drei to misplace the HTML overlay.
+      // scroll:false means sizes are only updated via ResizeObserver, which correctly
+      // reports layout dimensions unaffected by CSS transforms.
+      resize={{ scroll: false }}
       onCreated={({ gl }) => {
         gl.domElement.addEventListener('webglcontextlost', (e) => {
           e.preventDefault()

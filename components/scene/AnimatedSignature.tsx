@@ -5,6 +5,7 @@ import opentype from 'opentype.js'
 interface Props {
   text: string
   replayKey: number
+  fontPath?: string
   height?: number
   fontSize?: number
   color?: string
@@ -12,12 +13,12 @@ interface Props {
   durationSeconds?: number
 }
 
-let fontPromise: Promise<opentype.Font> | null = null
-function loadFont(): Promise<opentype.Font> {
-  if (!fontPromise) {
-    fontPromise = opentype.load('/fonts/HomemadeApple.ttf')
+const fontCache = new Map<string, Promise<opentype.Font>>()
+function loadFont(path: string): Promise<opentype.Font> {
+  if (!fontCache.has(path)) {
+    fontCache.set(path, opentype.load(path))
   }
-  return fontPromise
+  return fontCache.get(path)!
 }
 
 interface Glyph {
@@ -45,6 +46,7 @@ interface SigData {
 export function AnimatedSignature({
   text,
   replayKey,
+  fontPath = '/fonts/HomemadeApple.ttf',
   height = 26,
   fontSize = 22,
   color = 'rgba(20,20,30,0.88)',
@@ -58,7 +60,7 @@ export function AnimatedSignature({
 
   useEffect(() => {
     let cancelled = false
-    loadFont().then((font) => {
+    loadFont(fontPath).then((font) => {
       if (cancelled) return
       const fontScale = fontSize / font.unitsPerEm
       const glyphs: Glyph[] = []
@@ -99,7 +101,7 @@ export function AnimatedSignature({
       })
     })
     return () => { cancelled = true }
-  }, [text, fontSize])
+  }, [text, fontSize, fontPath])
 
   useEffect(() => {
     if (!data) return

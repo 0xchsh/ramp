@@ -47,6 +47,22 @@ export const HOLO_PATTERN_KIND: Record<HoloPattern, number> = {
 export type Material = 'plastic' | 'metal' | 'glass' | 'rainbow'
 export const MATERIAL_IDS: Material[] = ['plastic', 'metal', 'glass', 'rainbow']
 
+export type SignatureFont = 'homemade-apple' | 'momo-signature' | 'rock-salt' | 'permanent-marker'
+
+export interface SignatureFontDef {
+  id: SignatureFont
+  label: string
+  file: string       // /public path for OpenType.js
+  cssFamily: string  // @font-face family name used in the picker preview
+}
+
+export const SIGNATURE_FONTS: SignatureFontDef[] = [
+  { id: 'homemade-apple',   label: 'Homemade Apple',   file: '/fonts/HomemadeApple.ttf',   cssFamily: 'SigHomemadeApple' },
+  { id: 'momo-signature',   label: 'Momo Signature',   file: '/fonts/MomoSignature.ttf',   cssFamily: 'SigMomoSignature' },
+  { id: 'rock-salt',        label: 'Rock Salt',         file: '/fonts/RockSalt.ttf',         cssFamily: 'SigRockSalt' },
+  { id: 'permanent-marker', label: 'Permanent Marker', file: '/fonts/PermanentMarker.ttf', cssFamily: 'SigPermanentMarker' },
+]
+
 export interface CardState {
   // Name
   cardName: string
@@ -74,6 +90,8 @@ export interface CardState {
   preset: CardPreset
   // Active material — pure visual type, orthogonal to everything else
   material: Material
+  // Signature font — which bundled handwriting font to use on the card back
+  signatureFont: SignatureFont
   // UI state
   previewOpen: boolean
   // Custom flip cursor — set by the card mesh's pointer handlers, read by
@@ -110,6 +128,7 @@ export const useCardStore = create<CardState>((set) => ({
   shadowDepth: 0.5,
   preset: 'white',
   material: 'plastic',
+  signatureFont: 'homemade-apple',
   previewOpen: false,
   cursorOverCard: false,
   cursorPressed: false,
